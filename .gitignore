@@ -42,3 +42,8 @@ yarn-error.*
 
 package-lock.json
 skills-lock.json
+
+# Expo local logs
+.expo-start-*.log
+.expo-start-*.err.log
+*.log

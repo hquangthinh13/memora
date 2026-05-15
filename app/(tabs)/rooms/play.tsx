@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { AppButton, AppCard, AppText, PlaceholderList, Screen } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoom } from "@/hooks/useRoom";
+import { getErrorMessage } from "@/lib/errors";
 
 function asOptions(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
@@ -20,6 +21,15 @@ export default function RoomPlayScreen() {
   const options = useMemo(
     () => asOptions(room.activeQuestion?.options),
     [room.activeQuestion?.options],
+  );
+  const currentAnswer = useMemo(
+    () =>
+      room.answers.find(
+        (answer) =>
+          answer.question_id === room.activeQuestion?.id &&
+          answer.user_id === user?.id,
+      ),
+    [room.activeQuestion?.id, room.answers, user?.id],
   );
 
   async function handleAnswer(answer: string) {
@@ -40,7 +50,7 @@ export default function RoomPlayScreen() {
         score: correct ? room.activeQuestion.points : 0,
       });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not submit answer.");
+      setError(getErrorMessage(caught, "Could not submit answer."));
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +103,7 @@ export default function RoomPlayScreen() {
             <AppButton
               key={option}
               title={option}
-              disabled={submitting}
+              disabled={submitting || Boolean(currentAnswer)}
               onPress={() => void handleAnswer(option)}
             />
           ))}

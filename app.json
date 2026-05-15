@@ -30,6 +30,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-image-picker",
       "expo-sqlite",
       "expo-web-browser"
     ]

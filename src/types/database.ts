@@ -50,6 +50,14 @@ export type Database = {
           language: string | null;
           tags: string[];
           cover_url: string | null;
+          cover_image_url: string | null;
+          cover_image_public_id: string | null;
+          topic_id: string | null;
+          source_type: "text" | "pdf";
+          source_text: string | null;
+          source_file_path: string | null;
+          status: "Preparing" | "Ready" | "Failed";
+          generation_error: string | null;
           is_archived: boolean;
           created_at: string;
           updated_at: string;
@@ -64,6 +72,14 @@ export type Database = {
           language?: string | null;
           tags?: string[];
           cover_url?: string | null;
+          cover_image_url?: string | null;
+          cover_image_public_id?: string | null;
+          topic_id?: string | null;
+          source_type?: "text" | "pdf";
+          source_text?: string | null;
+          source_file_path?: string | null;
+          status?: "Preparing" | "Ready" | "Failed";
+          generation_error?: string | null;
           is_archived?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -75,6 +91,8 @@ export type Database = {
         Row: {
           id: string;
           deck_id: string;
+          front: string | null;
+          back: string | null;
           term: string | null;
           definition: string | null;
           pronunciation: string | null;
@@ -90,7 +108,8 @@ export type Database = {
           mnemonic: string | null;
           metadata: Json | null;
           tags: string[];
-          difficulty: Database["public"]["Enums"]["card_difficulty"];
+          difficulty: number;
+          difficulty_legacy: Database["public"]["Enums"]["card_difficulty"];
           status: Database["public"]["Enums"]["card_status"];
           image_url: string | null;
           audio_url: string | null;
@@ -101,6 +120,8 @@ export type Database = {
         Insert: {
           id?: string;
           deck_id: string;
+          front?: string | null;
+          back?: string | null;
           term?: string | null;
           definition?: string | null;
           pronunciation?: string | null;
@@ -116,7 +137,8 @@ export type Database = {
           mnemonic?: string | null;
           metadata?: Json | null;
           tags?: string[];
-          difficulty?: Database["public"]["Enums"]["card_difficulty"];
+          difficulty?: number;
+          difficulty_legacy?: Database["public"]["Enums"]["card_difficulty"];
           status?: Database["public"]["Enums"]["card_status"];
           image_url?: string | null;
           audio_url?: string | null;
@@ -125,6 +147,54 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["cards"]["Insert"]>;
+        Relationships: [];
+      };
+      topics: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["topics"]["Insert"]>;
+        Relationships: [];
+      };
+      questions: {
+        Row: {
+          id: string;
+          deck_id: string;
+          type: "mcq" | "fill_in_the_blank" | "true_false" | "short_answer";
+          question: string;
+          correct_answer: Json;
+          wrong_answers: string[];
+          difficulty: number;
+          time_limit: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          deck_id: string;
+          type?: "mcq" | "fill_in_the_blank" | "true_false" | "short_answer";
+          question: string;
+          correct_answer: Json;
+          wrong_answers?: string[];
+          difficulty?: number;
+          time_limit?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["questions"]["Insert"]>;
         Relationships: [];
       };
       card_sides: {
@@ -215,6 +285,66 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["deck_shares"]["Insert"]>;
+        Relationships: [];
+      };
+      deck_collaborators: {
+        Row: {
+          id: string;
+          deck_id: string;
+          user_id: string;
+          role: "owner" | "editor" | "viewer";
+          invited_by: string | null;
+          status: "pending" | "accepted" | "rejected";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          deck_id: string;
+          user_id: string;
+          role?: "owner" | "editor" | "viewer";
+          invited_by?: string | null;
+          status?: "pending" | "accepted" | "rejected";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["deck_collaborators"]["Insert"]>;
+        Relationships: [];
+      };
+      friendships: {
+        Row: {
+          id: string;
+          requester_id: string;
+          addressee_id: string;
+          status: "pending" | "accepted" | "rejected" | "blocked";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          requester_id: string;
+          addressee_id: string;
+          status?: "pending" | "accepted" | "rejected" | "blocked";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["friendships"]["Insert"]>;
+        Relationships: [];
+      };
+      saved_decks: {
+        Row: {
+          id: string;
+          user_id: string;
+          deck_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          deck_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["saved_decks"]["Insert"]>;
         Relationships: [];
       };
       study_progress: {

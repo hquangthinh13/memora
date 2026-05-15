@@ -25,6 +25,8 @@ Required Supabase environment variables:
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_or_publishable_key
+EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=dee339rpr
+EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
 ```
 
 ### Email OTP Signup
@@ -136,3 +138,112 @@ Development and production:
 NativeWind is configured for TailwindCSS-style utility classes in React Native.
 The main styling setup lives in `tailwind.config.js`, `babel.config.js`,
 `metro.config.js`, `global.css`, and `nativewind-env.d.ts`.
+
+## App Navigation
+
+Authenticated app screens use Expo Router tabs:
+
+- Home: dashboard, progress summary, quick actions, and recent decks.
+- Rooms: create a live study room, join by room code, and view open rooms.
+- My Library: owned, shared, collaborative, public, and saved-readable decks.
+- My Profile: profile summary, friends count, published decks, saved decks, and collaborative decks.
+
+Auth screens stay outside the tab layout. Deck detail, deck edit/create, card
+edit/create, study, and room play/result routes are hidden from the tab bar and
+opened from the main tabs.
+
+## Database Model
+
+The app uses `public.users` as the profile table. The latest migration adds:
+
+- `decks.cover_image_url`, while keeping existing `cover_url` compatible.
+- `decks.cover_image_public_id`, used to clean up Cloudinary assets securely.
+- `friendships` for pending/accepted/rejected/blocked friend relationships.
+- `deck_collaborators` for deck roles: owner, editor, and viewer.
+- `saved_decks` for user-saved readable decks.
+
+RLS keeps the MVP permission model simple:
+
+- users can see friendships where they are requester or addressee
+- users can create/cancel their own friend requests
+- deck owners can invite/remove collaborators
+- accepted collaborators can read decks and cards
+- editors can create/update/delete cards
+- only deck owners can update/delete deck records
+- joinable waiting rooms are readable so users can resolve a room code before
+  joining
+
+Run migrations locally or apply the migration to the connected Supabase project,
+then regenerate `src/types/database.ts` from Supabase types or update it to match
+the migration.
+
+## Current MVP Limits
+
+- OAuth/social login UI is intentionally hidden while email OTP auth is primary.
+- Invite friends and friend discovery have schema support, but only lightweight UI
+  entry points are present.
+- Realtime room play remains client-authoritative for now.
+- Streak and accuracy are placeholders until richer study analytics are added.
+
+## Cloudinary Deck Covers
+
+Deck cover images are uploaded to Cloudinary from the Expo app with an unsigned
+upload preset. The app stores both Cloudinary values on the deck:
+
+- `cover_image_url`: the `secure_url` used by Home, My Library, and Deck Detail.
+- `cover_image_public_id`: the Cloudinary `public_id` used for secure deletion.
+
+Client-side uploads use only public Expo env vars. Do not add Cloudinary API
+secrets to `.env`, `.env.example`, or any `EXPO_PUBLIC_` variable.
+
+### Unsigned Upload Preset
+
+In Cloudinary Dashboard:
+
+1. Open Settings > Upload.
+2. Create an unsigned upload preset.
+3. Restrict it to image formats only.
+4. Set a max file size if available.
+5. Use the folder `memora/deck`.
+6. Copy the preset name into `EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET`.
+
+Deck cover uploads also send `folder: "memora/deck"` in the request, so uploaded
+assets stay organized under:
+
+```text
+memora/deck
+```
+
+### Secure Deletion
+
+Image deletion is handled by the Supabase Edge Function
+`delete-cloudinary-image`. Configure these function secrets in Supabase, not in
+the Expo app:
+
+```bash
+CLOUDINARY_CLOUD_NAME=dee339rpr
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+```
+
+The Edge Function requires an authenticated user, checks that the user owns the
+deck or has accepted owner/editor collaborator access, then deletes the
+Cloudinary `public_id`.
+
+Deploy the function after logging in with the Supabase CLI:
+
+```bash
+supabase login
+supabase functions deploy delete-cloudinary-image --project-ref zqrtzryfqgijiklxhstp
+```
+
+Set the required secrets:
+
+```bash
+supabase secrets set CLOUDINARY_CLOUD_NAME=dee339rpr --project-ref zqrtzryfqgijiklxhstp
+supabase secrets set CLOUDINARY_API_KEY=your_cloudinary_api_key --project-ref zqrtzryfqgijiklxhstp
+supabase secrets set CLOUDINARY_API_SECRET=your_cloudinary_api_secret --project-ref zqrtzryfqgijiklxhstp
+```
+
+For production, prefer moving uploads to a signed backend path or Supabase Edge
+Function as well, so upload constraints can be enforced server-side.

@@ -8,6 +8,19 @@ export async function getStudyCards(deckId: string) {
   return listCards(deckId);
 }
 
+export async function getStudiedCardCount(userId: string) {
+  const { count, error } = await supabase
+    .from("study_progress")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
 export async function recordStudyAnswer({
   userId,
   cardId,

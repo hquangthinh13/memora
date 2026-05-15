@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { getErrorMessage } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
 import {
   createRoom,
@@ -13,6 +14,9 @@ import {
 import type { Inserts } from "@/types/database";
 
 export function useRoom(roomId?: string) {
+  const channelInstanceId = useRef(
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+  );
   const [state, setState] = useState<RoomState>({
     room: null,
     players: [],
@@ -36,7 +40,7 @@ export function useRoom(roomId?: string) {
     try {
       setState(await getRoomState(roomId));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not load room.");
+      setError(getErrorMessage(caught, "Could not load room."));
     } finally {
       setLoading(false);
     }
@@ -49,8 +53,9 @@ export function useRoom(roomId?: string) {
   useEffect(() => {
     if (!roomId) return;
 
+    const topic = `room:${roomId}:${channelInstanceId.current}`;
     const channel = supabase
-      .channel(`room:${roomId}`)
+      .channel(topic)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "rooms", filter: `id=eq.${roomId}` },
@@ -71,7 +76,11 @@ export function useRoom(roomId?: string) {
         { event: "*", schema: "public", table: "room_answers", filter: `room_id=eq.${roomId}` },
         () => void refresh(),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          setError("Could not subscribe to room updates.");
+        }
+      });
 
     return () => {
       void supabase.removeChannel(channel);

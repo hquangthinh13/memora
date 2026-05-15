@@ -5,6 +5,10 @@ export type Room = Tables<"rooms">;
 export type RoomPlayer = Tables<"room_players">;
 export type RoomQuestion = Tables<"room_questions">;
 export type RoomAnswer = Tables<"room_answers">;
+export type OpenRoom = Room & {
+  decks?: Pick<Tables<"decks">, "id" | "title" | "cover_image_url" | "cover_url"> | null;
+  users?: Pick<Tables<"users">, "id" | "display_name" | "avatar_url"> | null;
+};
 
 export type RoomState = {
   room: Room | null;
@@ -158,32 +162,72 @@ export async function createRoomQuestions(questions: Inserts<"room_questions">[]
 }
 
 export async function submitRoomAnswer(answer: Inserts<"room_answers">) {
-  const { data, error } = await supabase
+  const { data: existingAnswer, error: existingAnswerError } = await supabase
     .from("room_answers")
-    .upsert(answer, { onConflict: "question_id,user_id" })
-    .select()
-    .single();
+    .select("*")
+    .eq("question_id", answer.question_id)
+    .eq("user_id", answer.user_id)
+    .maybeSingle();
 
-  if (error) {
-    throw error;
+  if (existingAnswerError) {
+    throw existingAnswerError;
   }
 
-  const score = answer.score ?? 0;
+  const answerResult = existingAnswer
+    ? await supabase
+        .from("room_answers")
+        .update(answer)
+        .eq("id", existingAnswer.id)
+        .select()
+        .single()
+    : await supabase
+        .from("room_answers")
+        .insert(answer)
+        .select()
+        .single();
 
-  if (score > 0) {
-    const { data: player } = await supabase
+  if (answerResult.error) {
+    throw answerResult.error;
+  }
+
+  const scoreDelta = (answer.score ?? 0) - (existingAnswer?.score ?? 0);
+
+  if (scoreDelta !== 0) {
+    const { data: player, error: playerError } = await supabase
       .from("room_players")
       .select("*")
       .eq("room_id", answer.room_id)
       .eq("user_id", answer.user_id)
       .maybeSingle();
 
-    await supabase
+    if (playerError) {
+      throw playerError;
+    }
+
+    const { error: scoreError } = await supabase
       .from("room_players")
-      .update({ score: (player?.score ?? 0) + score })
+      .update({ score: (player?.score ?? 0) + scoreDelta })
       .eq("room_id", answer.room_id)
       .eq("user_id", answer.user_id);
+
+    if (scoreError) {
+      throw scoreError;
+    }
   }
 
-  return data;
+  return answerResult.data;
+}
+
+export async function listOpenRooms() {
+  const { data, error } = await supabase
+    .from("rooms")
+    .select("*, decks(id, title, cover_image_url, cover_url), users!rooms_host_id_fkey(id, display_name, avatar_url)")
+    .eq("status", "WAITING")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as OpenRoom[];
 }

@@ -1,8 +1,10 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
-import { AppButton, AppCard, AppInput, AppText, Screen } from "@/components";
+import { AppButton, AppCard, AppInput, AppText, DeckCoverPicker, Screen } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
+import { getErrorMessage } from "@/lib/errors";
+import { uploadImageToCloudinary } from "@/services/cloudinary";
 import { createDeck } from "@/services/decks";
 
 export default function CreateDeckScreen() {
@@ -11,6 +13,7 @@ export default function CreateDeckScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [language, setLanguage] = useState("");
+  const [selectedCoverUri, setSelectedCoverUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,15 +28,23 @@ export default function CreateDeckScreen() {
     setError(null);
 
     try {
+      const cover = selectedCoverUri
+        ? await uploadImageToCloudinary({
+            localUri: selectedCoverUri,
+            folder: "memora/deck",
+          })
+        : null;
       const deck = await createDeck({
         owner_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
         language: language.trim() || null,
+        cover_image_url: cover?.secureUrl ?? null,
+        cover_image_public_id: cover?.publicId ?? null,
       });
       router.replace(`/decks/${deck.id}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save deck.");
+      setError(getErrorMessage(caught, "Could not save deck."));
     } finally {
       setSubmitting(false);
     }
@@ -50,9 +61,19 @@ export default function CreateDeckScreen() {
         <AppInput label="Deck title" placeholder="Travel phrases" value={title} onChangeText={setTitle} />
         <AppInput label="Description" placeholder="Short context for learners" value={description} onChangeText={setDescription} />
         <AppInput label="Language" placeholder="French" value={language} onChangeText={setLanguage} />
+        <DeckCoverPicker
+          imageUri={selectedCoverUri}
+          disabled={submitting}
+          onChange={(uri) => {
+            setError(null);
+            setSelectedCoverUri(uri);
+          }}
+          onRemove={() => setSelectedCoverUri(null)}
+          onError={setError}
+        />
         {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
         <AppButton
-          title={submitting ? "Saving..." : "Save deck"}
+          title={submitting ? "Saving deck..." : "Save deck"}
           variant="primary"
           disabled={submitting}
           onPress={handleSave}

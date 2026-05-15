@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDeckDetail } from "@/hooks/useDeckDetail";
 import { useDecks } from "@/hooks/useDecks";
 import { useRoom } from "@/hooks/useRoom";
+import { getErrorMessage } from "@/lib/errors";
 import { createRoom, createRoomQuestions, joinRoomByCode, updateRoom } from "@/services/rooms";
 
 export default function RoomLobbyScreen() {
@@ -44,7 +45,7 @@ export default function RoomLobbyScreen() {
       });
       router.replace(`/rooms/lobby?roomId=${created.id}&deckId=${selectedDeckId}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not create room.");
+      setError(getErrorMessage(caught, "Could not create room."));
     } finally {
       setSubmitting(false);
     }
@@ -64,7 +65,7 @@ export default function RoomLobbyScreen() {
       });
       router.replace(`/rooms/lobby?roomId=${joined.id}&deckId=${joined.deck_id}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not join room.");
+      setError(getErrorMessage(caught, "Could not join room."));
     } finally {
       setSubmitting(false);
     }
@@ -99,7 +100,7 @@ export default function RoomLobbyScreen() {
       });
       router.push(`/rooms/play?roomId=${room.room.id}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not start room.");
+      setError(getErrorMessage(caught, "Could not start room."));
     } finally {
       setSubmitting(false);
     }

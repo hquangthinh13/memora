@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { createDeck, listDecks, type Deck } from "@/services/decks";
+import { createDeck, listDecks, type DeckSummary } from "@/services/decks";
 import type { Inserts } from "@/types/database";
 
 export function useDecks() {
-  const [decks, setDecks] = useState<Deck[]>([]);
+  const [decks, setDecks] = useState<DeckSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

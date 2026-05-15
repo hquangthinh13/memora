@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 
-import { AppButton, AppCard, AppText, NavLink, Screen } from "@/components";
+import { AppButton, AppCard, AppText, LearningFlashcard, NavLink, Screen } from "@/components";
 import { useStudySession } from "@/hooks/useStudySession";
 
 export default function StudyScreen() {
@@ -39,15 +39,14 @@ export default function StudyScreen() {
             <AppText variant="caption">
               Card {session.index + 1} of {session.total}
             </AppText>
-            <AppText variant="subtitle">
-              {session.currentCard.term ?? "Untitled card"}
-            </AppText>
-            {session.answerVisible ? (
-              <AppText variant="body" className="text-text-muted">
-                {session.currentCard.definition ?? "No answer yet."}
-              </AppText>
-            ) : null}
           </AppCard>
+
+          <LearningFlashcard
+            front={session.currentCard.term ?? "Untitled card"}
+            back={session.currentCard.definition ?? "No answer yet."}
+            flipped={session.answerVisible}
+            onPress={session.reveal}
+          />
 
           {!session.answerVisible ? (
             <AppButton title="Reveal answer" variant="primary" onPress={session.reveal} />

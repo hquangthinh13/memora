@@ -1,6 +1,12 @@
 import { Redirect, Tabs } from "expo-router";
 import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  BookBookmark02Icon,
+  Home07Icon,
+  Search01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, HugeiconsProps } from "@hugeicons/react-native";
 
 import { colors, components } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,49 +17,56 @@ const tabs = [
   {
     name: "index",
     title: "Home",
-    icon: "H",
+    icons: Home07Icon,
   },
   {
-    name: "decks",
-    title: "Decks",
-    icon: "D",
+    name: "rooms/index",
+    title: "Rooms",
+    icons: Search01Icon,
+  },
+  {
+    name: "library/index",
+    title: "My Library",
+    icons: BookBookmark02Icon,
+  },
+  {
+    name: "profile/index",
+    title: "Profile",
+    icons: Home07Icon,
   },
 ];
 
 const hiddenScreens = [
   "cards/edit",
-  "decks/new",
+  "decks/index",
   "decks/[deckId]/index",
   "decks/[deckId]/edit",
+  "decks/new",
   "rooms/lobby",
   "rooms/play",
   "rooms/result",
   "study",
 ];
-
 const TabsIcon = ({
   focused,
   icon,
 }: {
   focused: boolean;
-  icon: string;
+  icon: HugeiconsProps["icon"];
 }) => {
   return (
     <View className="size-12 items-center justify-center">
       <View
         className={cn(
-          "size-12 items-center justify-center rounded-full border border-border",
+          "size-12 items-center justify-center rounded-full ",
           focused && "bg-primary",
         )}
       >
-        <Text
-          className={cn(
-            "font-sans-bold text-base",
-            focused ? "text-primary-foreground" : "text-text-muted",
-          )}
-        >
-          {icon}
-        </Text>
+        <HugeiconsIcon
+          className="tabs-glyph"
+          icon={icon}
+          color={focused ? "#ffffff" : "rgba(0, 0, 0, 0.6)"}
+        />
       </View>
     </View>
   );
@@ -80,6 +93,7 @@ const TabsLayout = () => {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
+        tabBarLabelPosition: "below-icon",
         tabBarStyle: {
           position: "absolute",
           height: components.tabBar.height + insets.bottom + 16,
@@ -106,12 +120,12 @@ const TabsLayout = () => {
           options={{
             title: tab.title,
             tabBarIcon: ({ focused }) => (
-              <TabsIcon focused={focused} icon={tab.icon} />
+              <TabsIcon focused={focused} icon={tab.icons} />
             ),
             tabBarLabel: ({ focused }) => (
               <Text
                 className={cn(
-                  "mt-1 text-center font-sans-medium text-xs",
+                  "mt-2 text-center font-sans-medium text-xs",
                   focused ? "text-text" : "text-text-muted",
                 )}
               >

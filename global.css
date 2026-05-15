@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-background: #f7f1ec;
+  --color-surface: #fffdf9;
+  --color-surface-soft: #f1e8e1;
+
+  --color-text: #111015;
+  --color-text-muted: #706a68;
+  --color-text-soft: #9b918d;
+
+  --color-primary: #111015;
+  --color-primary-foreground: #ffffff;
+
+  --color-mint: #bdefd9;
+  --color-mint-soft: #ddf8ec;
+
+  --color-pink: #f4bfc4;
+  --color-pink-soft: #f9dde0;
+
+  --color-peach: #f8d7ae;
+  --color-peach-soft: #fbe8cf;
+
+  --color-lavender: #cbc7f6;
+  --color-lavender-soft: #e3e0ff;
+
+  --color-yellow-soft: #f8e6a7;
+
+  --color-border: #e8ddd6;
+  --color-danger: #ef6f6c;
+  --color-success: #49b882;
+
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-3xl: 36px;
+
+  --font-sans: "Comfortaa-Regular";
+  --font-sans-medium: "Comfortaa-Medium";
+  --font-sans-semibold: "Comfortaa-SemiBold";
+  --font-sans-bold: "Comfortaa-Bold";
+
+  --spacing-card: 1.25rem;
+  --spacing-screen-x: 1.25rem;
+  --spacing-screen-y: 1.5rem;
+  --spacing-screen-gap: 1.25rem;
+}
+
+@theme {
+  --color-background: #f7f1ec;
+  --color-surface: #fffdf9;
+  --color-surface-soft: #f1e8e1;
+
+  --color-text: #111015;
+  --color-text-muted: #706a68;
+  --color-text-soft: #9b918d;
+
+  --color-primary: #111015;
+  --color-primary-foreground: #ffffff;
+
+  --color-mint: #bdefd9;
+  --color-mint-soft: #ddf8ec;
+
+  --color-pink: #f4bfc4;
+  --color-pink-soft: #f9dde0;
+
+  --color-peach: #f8d7ae;
+  --color-peach-soft: #fbe8cf;
+
+  --color-lavender: #cbc7f6;
+  --color-lavender-soft: #e3e0ff;
+
+  --color-yellow-soft: #f8e6a7;
+
+  --color-border: #e8ddd6;
+  --color-danger: #ef6f6c;
+  --color-success: #49b882;
+
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-3xl: 36px;
+
+  --font-sans: "Comfortaa-Regular";
+  --font-sans-medium: "Comfortaa-Medium";
+  --font-sans-semibold: "Comfortaa-SemiBold";
+  --font-sans-bold: "Comfortaa-Bold";
+
+  --spacing-card: 1.25rem;
+  --spacing-screen-x: 1.25rem;
+  --spacing-screen-y: 1.5rem;
+  --spacing-screen-gap: 1.25rem;
+}

@@ -1,0 +1,25 @@
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY
+Starting project at D:\Project\memora
+Starting Metro Bundler
+Waiting on http://localhost:8090
+Logs for your project will appear below.
+Web Bundling failed 1163ms node_modules\expo-router\entry.js (749 modules)
+Unable to resolve "../global.css" from "app\_layout.tsx"
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mimport[39m [32m"../global.css"[39m[33m;[39m
+ [90m   |[39m         [31m[1m^[22m[39m
+ [90m 2 |[39m
+ [90m 3 |[39m [36mimport[39m { [33mStack[39m } [36mfrom[39m [32m"expo-router"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m { useFonts } [36mfrom[39m [32m"expo-font"[39m[33m;[39m[0m
+
+Import stack:
+
+ app\_layout.tsx
+ | import "../global.css"
+
+ app (require.context)
+
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.8% (823/824)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.8% (823/824)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)

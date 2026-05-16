@@ -11,8 +11,22 @@ export function useStudySession(deckId?: string) {
   const [answerVisible, setAnswerVisible] = useState(false);
   const [loading, setLoading] = useState(Boolean(deckId));
   const [error, setError] = useState<string | null>(null);
-
+  const toggleAnswer = useCallback(() => {
+    setAnswerVisible((value) => !value);
+  }, []);
   const currentCard = useMemo(() => cards[index] ?? null, [cards, index]);
+
+  const next = useCallback(() => {
+    setAnswerVisible(false);
+
+    setIndex((value) => Math.min(value + 1, cards.length));
+  }, [cards.length]);
+
+  const previous = useCallback(() => {
+    setAnswerVisible(false);
+
+    setIndex((value) => Math.max(value - 1, 0));
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!deckId) return;
@@ -25,7 +39,11 @@ export function useStudySession(deckId?: string) {
       setIndex(0);
       setAnswerVisible(false);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not load study cards.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not load study cards.",
+      );
     } finally {
       setLoading(false);
     }
@@ -67,5 +85,8 @@ export function useStudySession(deckId?: string) {
     refresh,
     reveal,
     answer,
+    toggleAnswer,
+    next,
+    previous,
   };
 }

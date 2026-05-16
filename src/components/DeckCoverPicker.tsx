@@ -56,9 +56,13 @@ export function DeckCoverPicker({
 
   return (
     <View className={cn("gap-3", className)}>
-      <View className="h-48 w-full overflow-hidden rounded-3xl border border-border bg-surface-soft">
+      <View className="h-48 w-full overflow-hidden rounded-lg border border-border bg-surface-soft">
         {imageUri ? (
-          <Image source={{ uri: imageUri }} className="h-full w-full" resizeMode="cover" />
+          <Image
+            source={{ uri: imageUri }}
+            className="h-full w-full"
+            resizeMode="cover"
+          />
         ) : (
           <View className="h-full w-full items-center justify-center px-6">
             <AppText variant="subtitle" className="text-center">
@@ -75,7 +79,7 @@ export function DeckCoverPicker({
         <View className="flex-1">
           <AppButton
             title={imageUri ? "Change cover" : "Upload cover"}
-            variant="secondary"
+            variant="ghost"
             disabled={disabled}
             onPress={handlePickImage}
           />

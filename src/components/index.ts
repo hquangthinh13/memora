@@ -19,3 +19,4 @@ export { Screen } from "./Screen";
 export { StaticFlashcard } from "./StaticFlashcard";
 export { TopicSelect } from "./TopicSelect";
 export { UserItem } from "./UserItem";
+export { SectionHeader } from "./SectionHeader";

@@ -1,7 +1,16 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
-import { AppButton, AppCard, AppInput, AppText, DeckCoverPicker, Screen, TopicSelect } from "@/components";
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  AppText,
+  DeckCoverPicker,
+  Screen,
+  TopicSelect,
+  SectionHeader,
+} from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import { getErrorMessage } from "@/lib/errors";
 import { uploadImageToCloudinary } from "@/services/cloudinary";
@@ -65,15 +74,23 @@ export default function CreateDeckScreen() {
   }
 
   return (
-    <Screen scroll>
-      <AppText variant="title">Create deck</AppText>
-      <AppText variant="body" className="text-text-muted">
-        Add source notes and let AI prepare cards and quiz questions.
-      </AppText>
-
+    <Screen
+      header={<SectionHeader title="Create new deck"></SectionHeader>}
+      scroll
+    >
       <AppCard className="gap-4">
-        <AppInput label="Deck title" placeholder="HTTP basics" value={title} onChangeText={setTitle} />
-        <AppInput label="Description" placeholder="Short context for learners" value={description} onChangeText={setDescription} />
+        <AppInput
+          label="Deck title"
+          placeholder="HTTP basics"
+          value={title}
+          onChangeText={setTitle}
+        />
+        <AppInput
+          label="Description"
+          placeholder="Short context for learners"
+          value={description}
+          onChangeText={setDescription}
+        />
         <TopicSelect
           value={topicId}
           onChange={(id) => {
@@ -101,7 +118,11 @@ export default function CreateDeckScreen() {
           onRemove={() => setSelectedCoverUri(null)}
           onError={setError}
         />
-        {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
+        {error ? (
+          <AppText variant="caption" className="text-danger">
+            {error}
+          </AppText>
+        ) : null}
         <AppButton
           title={submitting ? "Preparing deck..." : "Generate deck"}
           variant="primary"

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Modal, TouchableOpacity, ScrollView, View } from "react-native";
 
 import { useTopics } from "@/hooks/useTopics";
 import { getErrorMessage } from "@/lib/errors";
@@ -81,44 +81,73 @@ export function TopicSelect({
       <AppText variant="caption" className="font-sans-medium text-text">
         {label}
       </AppText>
-      <Pressable
+      <TouchableOpacity
         accessibilityRole="button"
         disabled={disabled}
         className={cn(
-          "min-h-14 justify-center rounded-xl border bg-surface px-4 active:opacity-80",
+          "min-h-14 justify-center rounded-lg border bg-surface px-4 active:opacity-80",
           error ? "border-danger" : "border-border",
           disabled && "opacity-50",
         )}
         onPress={openDropdown}
       >
-        <AppText variant="body" className={selectedTopic ? "text-text" : "text-text-soft"}>
-          {selectedTopic?.name ?? (loading ? "Loading topics..." : "Choose a topic")}
+        <AppText
+          variant="body"
+          className={selectedTopic ? "text-text" : "text-text-soft"}
+        >
+          {selectedTopic?.name ??
+            (loading ? "Loading topics..." : "Choose a topic")}
         </AppText>
         {selectedTopic?.description ? (
           <AppText variant="caption" numberOfLines={1}>
             {selectedTopic.description}
           </AppText>
         ) : null}
-      </Pressable>
-      {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
-      {loadError ? <AppText variant="caption" className="text-danger">{loadError}</AppText> : null}
+      </TouchableOpacity>
+      {error ? (
+        <AppText variant="caption" className="text-danger">
+          {error}
+        </AppText>
+      ) : null}
+      {loadError ? (
+        <AppText variant="caption" className="text-danger">
+          {loadError}
+        </AppText>
+      ) : null}
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={closeDropdown}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDropdown}
+      >
         <View className="flex-1 justify-end bg-black/30">
-          <Pressable className="flex-1" onPress={closeDropdown} />
+          <TouchableOpacity className="flex-1" onPress={closeDropdown} />
           <View className="max-h-[82%] rounded-t-3xl border border-border bg-background p-5">
             <View className="mb-4 flex-row items-center justify-between">
               <View>
                 <AppText variant="subtitle">Choose topic</AppText>
-                <AppText variant="caption">Pick an existing topic or create a new one.</AppText>
+                <AppText variant="caption">
+                  Pick an existing topic or create a new one.
+                </AppText>
               </View>
-              <AppButton title="Close" variant="ghost" className="min-h-10 px-4" onPress={closeDropdown} />
+              <AppButton
+                title="Close"
+                variant="ghost"
+                className="min-h-10 px-4"
+                onPress={closeDropdown}
+              />
             </View>
 
             {adding ? (
               <AppCard className="gap-4">
                 <AppText variant="subtitle">Add new topic</AppText>
-                <AppInput label="Topic name" placeholder="Computer networks" value={name} onChangeText={setName} />
+                <AppInput
+                  label="Topic name"
+                  placeholder="Computer networks"
+                  value={name}
+                  onChangeText={setName}
+                />
                 <AppInput
                   label="Description"
                   placeholder="Optional description"
@@ -128,10 +157,19 @@ export function TopicSelect({
                   inputClassName="min-h-24 py-3"
                   textAlignVertical="top"
                 />
-                {createError ? <AppText variant="caption" className="text-danger">{createError}</AppText> : null}
+                {createError ? (
+                  <AppText variant="caption" className="text-danger">
+                    {createError}
+                  </AppText>
+                ) : null}
                 <View className="flex-row gap-2">
                   <View className="flex-1">
-                    <AppButton title="Cancel" variant="secondary" disabled={creating} onPress={() => setAdding(false)} />
+                    <AppButton
+                      title="Cancel"
+                      variant="secondary"
+                      disabled={creating}
+                      onPress={() => setAdding(false)}
+                    />
                   </View>
                   <View className="flex-1">
                     <AppButton
@@ -144,11 +182,21 @@ export function TopicSelect({
               </AppCard>
             ) : (
               <>
-                <AppButton title="Add new topic" variant="secondary" className="mb-4" onPress={() => setAdding(true)} />
-                {loading ? <AppText variant="caption">Loading topics...</AppText> : null}
-                <ScrollView className="max-h-96" contentContainerClassName="gap-3 pb-4">
+                <AppButton
+                  title="Add new topic"
+                  variant="secondary"
+                  className="mb-4"
+                  onPress={() => setAdding(true)}
+                />
+                {loading ? (
+                  <AppText variant="caption">Loading topics...</AppText>
+                ) : null}
+                <ScrollView
+                  className="max-h-96"
+                  contentContainerClassName="gap-3 pb-4"
+                >
                   {topics.map((topic) => (
-                    <Pressable
+                    <TouchableOpacity
                       key={topic.id}
                       accessibilityRole="button"
                       className={cn(
@@ -170,10 +218,13 @@ export function TopicSelect({
                           {topic.description}
                         </AppText>
                       ) : null}
-                    </Pressable>
+                    </TouchableOpacity>
                   ))}
                   {!loading && topics.length === 0 ? (
-                    <EmptyState title="No topics yet" description="Create a topic to use it for this deck." />
+                    <EmptyState
+                      title="No topics yet"
+                      description="Create a topic to use it for this deck."
+                    />
                   ) : null}
                 </ScrollView>
               </>

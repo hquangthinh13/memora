@@ -1,6 +1,6 @@
 import type { Href } from "expo-router";
 import { Link } from "expo-router";
-import { Image, Pressable, View } from "react-native";
+import { Image, TouchableOpacity, View } from "react-native";
 
 import { cn } from "@/lib/cn";
 import type { DeckSummary } from "@/services/decks";
@@ -21,7 +21,7 @@ export function DeckCard({
 }: DeckCardProps) {
   const coverUrl = deck.cover_image_url ?? deck.cover_url;
   const content = (
-    <Pressable
+    <TouchableOpacity
       className={cn(
         "rounded-lg border border-border bg-surface active:opacity-80 overflow-hidden",
         compact && "gap-2 flex-row items-center",
@@ -39,7 +39,7 @@ export function DeckCard({
       ) : (
         <View
           className={cn(
-            " items-center justify-center rounded-2xl bg-peach-soft",
+            " items-center justify-center bg-peach-soft",
             compact ? "size-20" : "h-40 w-full",
           )}
         >
@@ -74,7 +74,7 @@ export function DeckCard({
           ) : null}
         </View>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 
   if (!href) return content;

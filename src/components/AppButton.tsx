@@ -4,7 +4,12 @@ import { HugeiconsIcon, type HugeiconsProps } from "@hugeicons/react-native";
 
 import { cn } from "@/lib/cn";
 
-type AppButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
+type AppButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "destructive"
+  | "outline";
 type AppButtonLayout = "default" | "icon-only" | "icon-leading";
 
 type AppButtonProps = Omit<
@@ -31,6 +36,7 @@ const buttonVariantClasses: Record<AppButtonVariant, string> = {
   secondary: "border border-border bg-surface-soft",
   ghost: "bg-transparent",
   destructive: "bg-transparent",
+  outline: "border border-border bg-transparent",
 };
 
 const textVariantClasses: Record<AppButtonVariant, string> = {
@@ -38,6 +44,7 @@ const textVariantClasses: Record<AppButtonVariant, string> = {
   secondary: "text-text",
   ghost: "text-text",
   destructive: "text-danger",
+  outline: "text-text",
 };
 
 const defaultIconColor: Record<AppButtonVariant, string> = {
@@ -45,6 +52,7 @@ const defaultIconColor: Record<AppButtonVariant, string> = {
   secondary: "#111015",
   ghost: "#111015",
   destructive: "#EF6F6C",
+  outline: "#111015",
 };
 
 const layoutClasses: Record<AppButtonLayout, string> = {

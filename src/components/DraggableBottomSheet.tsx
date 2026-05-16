@@ -5,8 +5,8 @@ import {
   Dimensions,
   Modal,
   PanResponder,
-  Pressable,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -31,11 +31,14 @@ export function DraggableBottomSheet({
   children,
   onClose,
 }: DraggableBottomSheetProps) {
-  const animatedValue = useRef(new Animated.Value(MAX_DOWNWARD_TRANSLATE_Y)).current;
+  const animatedValue = useRef(
+    new Animated.Value(MAX_DOWNWARD_TRANSLATE_Y),
+  ).current;
   const lastGestureDy = useRef(MAX_DOWNWARD_TRANSLATE_Y);
 
   function springAnimation(direction: "up" | "down") {
-    const nextValue = direction === "down" ? BOTTOM_SHEET_MAX_HEIGHT : MAX_UPWARD_TRANSLATE_Y;
+    const nextValue =
+      direction === "down" ? BOTTOM_SHEET_MAX_HEIGHT : MAX_UPWARD_TRANSLATE_Y;
     lastGestureDy.current = nextValue;
 
     Animated.spring(animatedValue, {
@@ -90,9 +93,17 @@ export function DraggableBottomSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={styles.container}>
-        <Pressable style={styles.backdrop} onPress={() => springAnimation("down")} />
+        <TouchableOpacity
+          style={styles.backdrop}
+          onPress={() => springAnimation("down")}
+        />
         <Animated.View style={[styles.bottomSheet, bottomSheetAnimation]}>
           <View style={styles.draggableArea} {...panResponder.panHandlers}>
             <View style={styles.dragHandle} />

@@ -1,4 +1,4 @@
-import { Modal, Pressable, View } from "react-native";
+import { Modal, TouchableOpacity, View } from "react-native";
 
 import { AppButton } from "./AppButton";
 import { AppCard } from "./AppCard";
@@ -6,44 +6,88 @@ import { AppText } from "./AppText";
 
 type ConfirmDialogProps = {
   visible: boolean;
+
   title: string;
-  description: string;
+  description?: string;
+
   confirmTitle?: string;
   cancelTitle?: string;
+  loadingTitle?: string;
+
+  confirmVariant?: "primary" | "secondary" | "ghost" | "destructive";
+
+  hideCancel?: boolean;
   loading?: boolean;
+
+  children?: React.ReactNode;
+
   onCancel: () => void;
   onConfirm: () => void;
 };
 
 export function ConfirmDialog({
   visible,
+
   title,
   description,
-  confirmTitle = "Delete",
+
+  confirmTitle = "Confirm",
   cancelTitle = "Cancel",
-  loading,
+  loadingTitle = "Loading...",
+
+  confirmVariant = "primary",
+
+  hideCancel = false,
+  loading = false,
+
+  children,
+
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
       <View className="flex-1 justify-center bg-black/30 px-5">
-        <Pressable className="absolute inset-0" disabled={loading} onPress={onCancel} />
-        <AppCard className="gap-4">
+        <TouchableOpacity
+          className="absolute inset-0"
+          disabled={loading}
+          onPress={onCancel}
+        />
+
+        <AppCard className="gap-5 rounded-3xl">
           <View className="gap-2">
             <AppText variant="subtitle">{title}</AppText>
-            <AppText variant="body" className="text-text-muted">
-              {description}
-            </AppText>
+
+            {description ? (
+              <AppText variant="body" className="text-text-muted">
+                {description}
+              </AppText>
+            ) : null}
+
+            {children}
           </View>
+
           <View className="flex-row gap-2">
-            <View className="flex-1">
-              <AppButton title={cancelTitle} variant="secondary" disabled={loading} onPress={onCancel} />
-            </View>
+            {!hideCancel ? (
+              <View className="flex-1">
+                <AppButton
+                  title={cancelTitle}
+                  variant="secondary"
+                  disabled={loading}
+                  onPress={onCancel}
+                />
+              </View>
+            ) : null}
+
             <View className="flex-1">
               <AppButton
-                title={loading ? "Deleting..." : confirmTitle}
-                variant="destructive"
+                title={loading ? loadingTitle : confirmTitle}
+                variant={confirmVariant}
                 disabled={loading}
                 onPress={onConfirm}
               />

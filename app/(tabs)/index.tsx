@@ -1,4 +1,4 @@
-import { Image, Pressable, View } from "react-native";
+import { Image, TouchableOpacity, View } from "react-native";
 import { Link } from "expo-router";
 
 import {
@@ -25,48 +25,51 @@ export default function HomeScreen() {
   const recentDecks = decks.slice(0, 3);
 
   return (
-    <Screen scroll contentClassName="">
-      <View className="flex-row items-center justify-between">
-        <Link href="/profile" asChild>
-          <Pressable className="flex-row items-center gap-3 active:opacity-80">
-            {profile?.avatar_url ? (
-              <Image
-                source={{ uri: profile.avatar_url }}
-                className="size-12 rounded-full bg-surface-soft"
-              />
-            ) : (
-              <View className="size-12 items-center justify-center rounded-full bg-mint">
-                <AppText variant="subtitle">
-                  {displayName.slice(0, 1).toUpperCase()}
+    <Screen
+      header={
+        <View className="flex-row items-center justify-between">
+          <Link href="/profile" asChild>
+            <TouchableOpacity className="flex-row items-center gap-3 active:opacity-80">
+              {profile?.avatar_url ? (
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  className="size-12 rounded-full bg-surface-soft"
+                />
+              ) : (
+                <View className="size-12 items-center justify-center rounded-full bg-mint">
+                  <AppText variant="subtitle">
+                    {displayName.slice(0, 1).toUpperCase()}
+                  </AppText>
+                </View>
+              )}
+              <View>
+                <AppText variant="caption">Welcome back</AppText>
+                <AppText variant="body" className="font-sans-semibold">
+                  {displayName}
                 </AppText>
               </View>
-            )}
-            <View>
-              <AppText variant="caption">Welcome back</AppText>
-              <AppText variant="body" className="font-sans-semibold">
-                {displayName}
-              </AppText>
-            </View>
-          </Pressable>
-        </Link>
+            </TouchableOpacity>
+          </Link>
 
-        <AppButton
-          title="Log out"
-          variant="destructive"
-          icon={Logout01Icon}
-          layout="icon-only"
-          onPress={async () => {
-            try {
-              // console.log("Logging out...");
-              await signOut();
-              // console.log("Logged out");
-            } catch (error) {
-              console.error("Logout failed:", error);
-            }
-          }}
-        />
-      </View>
-
+          <AppButton
+            title="Log out"
+            variant="destructive"
+            icon={Logout01Icon}
+            layout="icon-only"
+            onPress={async () => {
+              try {
+                // console.log("Logging out...");
+                await signOut();
+                // console.log("Logged out");
+              } catch (error) {
+                console.error("Logout failed:", error);
+              }
+            }}
+          />
+        </View>
+      }
+      scroll
+    >
       <AppText variant="title" className="text-4xl">
         What would you like to remember today?
       </AppText>

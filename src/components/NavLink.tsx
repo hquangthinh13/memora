@@ -4,15 +4,18 @@ import { Link } from "expo-router";
 import { AppButton } from "./AppButton";
 
 type NavLinkProps = {
-  href: string;
-  title: string;
-  variant?: "primary" | "secondary" | "ghost";
-};
+  href: Href;
+} & React.ComponentProps<typeof AppButton>;
 
-export function NavLink({ href, title, variant = "secondary" }: NavLinkProps) {
+export function NavLink({
+  href,
+  title,
+  variant = "secondary",
+  ...props
+}: NavLinkProps) {
   return (
-    <Link href={href as Href} asChild>
-      <AppButton title={title} variant={variant} />
+    <Link href={href} asChild>
+      <AppButton title={title} variant={variant} {...props} />
     </Link>
   );
 }

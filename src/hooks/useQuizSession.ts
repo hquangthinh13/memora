@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useQuestions } from "@/hooks/useQuestions";
 import type { Question } from "@/services/questions";
@@ -34,7 +34,7 @@ function isCorrectAnswer(question: Question, answer: string) {
 
 // const AUTO_NEXT_DELAY_MS = 900;
 
-export function useQuizSession(deckId?: string) {
+export function useQuizSession(deckId?: string, { enabled = true }: { enabled?: boolean } = {}) {
   const questionsState = useQuestions(deckId);
 
   const [index, setIndex] = useState(0);
@@ -42,6 +42,11 @@ export function useQuizSession(deckId?: string) {
   const [results, setResults] = useState<QuizAnswerResult[]>([]);
   const [questionStartedAt, setQuestionStartedAt] = useState(Date.now());
   const [timeLeft, setTimeLeft] = useState(0);
+
+  const enabledRef = useRef(enabled);
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
   const currentQuestion = questionsState.questions[index] ?? null;
 
@@ -112,18 +117,30 @@ export function useQuizSession(deckId?: string) {
     reset();
   }, [deckId, reset]);
 
+  // When the screen loses focus, collapse any open dialog and freeze the timer.
   useEffect(() => {
-    if (!currentQuestion || selectedAnswer || done) return;
+    if (!enabled) {
+      setSelectedAnswer(null);
+    }
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled || !currentQuestion || selectedAnswer || done) return;
 
     setTimeLeft(timeLimit);
 
     if (!timeLimit || timeLimit <= 0) return;
 
     const interval = setInterval(() => {
+      if (!enabledRef.current) {
+        clearInterval(interval);
+        return;
+      }
+
       setTimeLeft((value) => {
         if (value <= 1) {
           clearInterval(interval);
-          timeout();
+          if (enabledRef.current) timeout();
           return 0;
         }
 
@@ -132,7 +149,7 @@ export function useQuizSession(deckId?: string) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentQuestion, done, selectedAnswer, timeLimit, timeout]);
+  }, [enabled, currentQuestion?.id, selectedAnswer, done, timeLimit, timeout]);
 
   return {
     ...questionsState,

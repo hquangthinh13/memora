@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\" -Recurse -Name)",
+      "Bash(Sort-Object)",
+      "PowerShell(head -100)"
+    ]
+  }
+}

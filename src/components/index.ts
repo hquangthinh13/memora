@@ -1,4 +1,5 @@
 export { AppButton } from "./AppButton";
+export { AvatarPicker } from "./AvatarPicker";
 export { AppCard } from "./AppCard";
 export { AppInput } from "./AppInput";
 export { AppText } from "./AppText";

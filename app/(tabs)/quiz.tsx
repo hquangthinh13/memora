@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { View } from "react-native";
 
 import {
@@ -17,7 +18,8 @@ import { useQuizSession } from "@/hooks/useQuizSession";
 
 export default function QuizScreen() {
   const { deckId } = useLocalSearchParams<{ deckId?: string }>();
-  const quiz = useQuizSession(deckId);
+  const isFocused = useIsFocused();
+  const quiz = useQuizSession(deckId, { enabled: isFocused });
   const latestResult = quiz.results.at(-1);
 
   const correctAnswer = Array.isArray(latestResult?.question.correct_answer)

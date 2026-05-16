@@ -24,6 +24,7 @@ export default function ProfileScreen() {
           <AppText variant="title">{displayName}</AppText>
           <AppText variant="caption">{profile?.email}</AppText>
         </View>
+        <NavLink href="/profile/edit" title="Edit profile" variant="secondary" />
       </View>
 
       {overview.error ? <AppText variant="caption" className="text-danger">{overview.error}</AppText> : null}

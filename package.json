@@ -9,11 +9,12 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "20": "^3.1.9",
     "@hugeicons/core-free-icons": "^4.1.4",
     "@hugeicons/react-native": "^1.0.13",
     "@supabase/supabase-js": "^2.105.4",
     "babel-preset-expo": "~54.0.10",
-    "expo": "~54.0.33",
+    "expo": "^54.0.34",
     "expo-auth-session": "~7.0.11",
     "expo-font": "~14.0.11",
     "expo-image": "~3.0.11",
@@ -33,7 +34,7 @@
   "devDependencies": {
     "@types/react": "~19.1.0",
     "babel-plugin-module-resolver": "^5.0.3",
-    "babel-preset-expo": "^55.0.21",
+    "babel-preset-expo": "~54.0.10",
     "nativewind": "^4.2.3",
     "react-dom": "19.1.0",
     "supabase": "^2.98.2",

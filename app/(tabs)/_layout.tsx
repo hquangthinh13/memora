@@ -39,6 +39,7 @@ const hiddenScreens = [
   "decks/[deckId]/index",
   "decks/[deckId]/edit",
   "decks/new",
+  "profile/edit",
   "quiz",
   "rooms/lobby",
   "rooms/index",

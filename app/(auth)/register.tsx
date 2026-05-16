@@ -1,12 +1,22 @@
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
+import { Image } from "expo-image";
+import { View } from "react-native";
 
-import { AppButton, AppCard, AppInput, AppText, NavLink, Screen } from "@/components";
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  AppText,
+  NavLink,
+  Screen,
+} from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getAuthErrorMessage,
   sendEmailOtpSignUp,
 } from "@/services/auth";
+import Images from "@/constants/images";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -35,9 +45,7 @@ export default function RegisterScreen() {
 
       router.replace({
         pathname: "/verify-otp",
-        params: {
-          email: normalizedEmail,
-        },
+        params: { email: normalizedEmail },
       });
     } catch (caught) {
       setError(getAuthErrorMessage(caught, "Could not send the code."));
@@ -47,14 +55,39 @@ export default function RegisterScreen() {
   }
 
   return (
-    <Screen scroll>
-      <AppText variant="title">Create account</AppText>
-      <AppText variant="body" className="text-text-muted">
-        Enter your email and we will send a 6-digit code.
-      </AppText>
+    <Screen
+      scroll
+      header={
+        <NavLink href="/onboarding" title="Back" variant="ghost" />
+      }
+    >
+      {/* Illustration */}
+      <View className="items-center py-2">
+        <View className="h-44 w-44 items-center justify-center rounded-3xl bg-mint-soft">
+          <Image
+            source={Images.floral01}
+            style={{ width: 130, height: 130 }}
+            contentFit="contain"
+          />
+        </View>
+      </View>
 
+      {/* Heading */}
+      <View className="gap-2">
+        <AppText variant="title">Create an account</AppText>
+        <AppText variant="body" className="text-text-muted">
+          Enter your email and we'll send a 6-digit code to get started.
+        </AppText>
+      </View>
+
+      {/* Form */}
       <AppCard className="gap-4">
-        <AppInput label="Name" placeholder="Alex" value={name} onChangeText={setName} />
+        <AppInput
+          label="Name"
+          placeholder="Alex"
+          value={name}
+          onChangeText={setName}
+        />
         <AppInput
           label="Email"
           placeholder="you@example.com"
@@ -63,16 +96,21 @@ export default function RegisterScreen() {
           value={email}
           onChangeText={setEmail}
         />
-        {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
+        {error ? (
+          <AppText variant="caption" className="text-danger">
+            {error}
+          </AppText>
+        ) : null}
         <AppButton
-          title={submitting ? "Sending..." : "Send code"}
+          title={submitting ? "Sending…" : "Send code"}
           variant="primary"
           disabled={submitting}
           onPress={handleEmailSignUp}
         />
-        {/* OAuth is temporarily disabled while email OTP is the primary flow. */}
-        <NavLink href="/login" title="I already have an account" variant="ghost" />
       </AppCard>
+
+      {/* Footer */}
+      <NavLink href="/login" title="Already have an account? Log in" variant="ghost" />
     </Screen>
   );
 }

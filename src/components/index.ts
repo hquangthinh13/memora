@@ -9,6 +9,7 @@ export { DeckCoverPicker } from "./DeckCoverPicker";
 export { DeckCard } from "./DeckCard";
 export { DraggableBottomSheet } from "./DraggableBottomSheet";
 export { EmptyState } from "./EmptyState";
+export { LearningDashboard } from "./LearningDashboard";
 export { LearningFlashcard } from "./LearningFlashcard";
 export { NavLink } from "./NavLink";
 export { PlaceholderList } from "./PlaceholderList";

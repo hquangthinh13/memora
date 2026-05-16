@@ -65,6 +65,64 @@ export async function verifyEmailOtp(email: string, token: string) {
   return data;
 }
 
+// ─── Password change via recovery OTP ────────────────────────────────────────
+
+/**
+ * Sends a 6-digit recovery code to the user's email.
+ * Supabase uses the "Password Recovery" email template for this.
+ * The template must contain {{ .Token }} to show the 6-digit code.
+ */
+export async function sendPasswordRecoveryOtp(email: string) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    // redirectTo is required by Supabase even in OTP-code mode.
+    // Must be registered in Dashboard → Auth → URL Configuration.
+    redirectTo: NATIVE_OAUTH_REDIRECT_TO,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Verifies the 6-digit recovery OTP and establishes a Supabase recovery
+ * session. Must be followed by changePassword() while the session is active.
+ */
+export async function verifyPasswordRecoveryOtp(email: string, token: string) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "recovery",
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Updates the authenticated user's password. Call this after
+ * verifyPasswordRecoveryOtp() has established a recovery session.
+ * Unlike setPasswordForCurrentUser, this does NOT touch user metadata.
+ */
+export async function changePassword(newPassword: string) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function resendSignupOtp(email: string) {
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
@@ -137,6 +195,10 @@ export function getAuthErrorMessage(caught: unknown, fallback: string) {
 
   if (normalized.includes("password") && normalized.includes("characters")) {
     return "Password must be at least 8 characters.";
+  }
+
+  if (normalized.includes("same password") || normalized.includes("different password")) {
+    return "New password must be different from your current password.";
   }
 
   return message;

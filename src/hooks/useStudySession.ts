@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/hooks/useAuth";
+import { recordCardStudy } from "@/services/learningProgress";
 import { getStudyCards, recordStudyAnswer } from "@/services/study";
 import type { Tables } from "@/types/database";
 
@@ -62,6 +63,9 @@ export function useStudySession(deckId?: string) {
         cardId: currentCard.id,
         correct,
       });
+
+      // Fire-and-forget — tracking failure must not block the study flow.
+      recordCardStudy(user.id).catch(console.error);
 
       setAnswerVisible(false);
       setIndex((value) => Math.min(value + 1, cards.length));

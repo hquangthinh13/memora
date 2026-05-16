@@ -1,5 +1,7 @@
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
+import { Image } from "expo-image";
+import { View } from "react-native";
 
 import { AppButton, AppCard, AppInput, AppText, Screen } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +10,7 @@ import {
   needsPasswordSetup,
   setPasswordForCurrentUser,
 } from "@/services/auth";
+import Images from "@/constants/images";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -51,11 +54,26 @@ export default function SetupPasswordScreen() {
 
   return (
     <Screen scroll>
-      <AppText variant="title">Set your password</AppText>
-      <AppText variant="body" className="text-text-muted">
-        Add a password so you can log in with email later.
-      </AppText>
+      {/* Illustration */}
+      <View className="items-center py-2">
+        <View className="h-44 w-44 items-center justify-center rounded-3xl bg-yellow-soft">
+          <Image
+            source={Images.floral01}
+            style={{ width: 130, height: 130 }}
+            contentFit="contain"
+          />
+        </View>
+      </View>
 
+      {/* Heading */}
+      <View className="gap-2">
+        <AppText variant="title">One last step</AppText>
+        <AppText variant="body" className="text-text-muted">
+          Set a password so you can log in with email anytime.
+        </AppText>
+      </View>
+
+      {/* Form */}
       <AppCard className="gap-4">
         <AppInput
           label="Password"
@@ -77,7 +95,7 @@ export default function SetupPasswordScreen() {
           </AppText>
         ) : null}
         <AppButton
-          title={submitting ? "Saving..." : "Complete setup"}
+          title={submitting ? "Saving…" : "Complete setup"}
           variant="primary"
           disabled={submitting}
           onPress={handleSubmit}

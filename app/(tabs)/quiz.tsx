@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { View } from "react-native";
@@ -14,12 +15,36 @@ import {
   SectionHeader,
   ConfirmDialog,
 } from "@/components";
+import { useAuth } from "@/hooks/useAuth";
 import { useQuizSession } from "@/hooks/useQuizSession";
+import { recordQuizCompletion } from "@/services/learningProgress";
 
 export default function QuizScreen() {
   const { deckId } = useLocalSearchParams<{ deckId?: string }>();
   const isFocused = useIsFocused();
+  const { user } = useAuth();
   const quiz = useQuizSession(deckId, { enabled: isFocused });
+
+  // Guard so we record completion exactly once per quiz run (not on re-renders).
+  const hasRecordedRef = useRef(false);
+
+  // Reset the guard whenever the quiz is not done (covers reset() and deckId change).
+  useEffect(() => {
+    if (!quiz.done) {
+      hasRecordedRef.current = false;
+    }
+  }, [quiz.done]);
+
+  useEffect(() => {
+    if (quiz.done && quiz.total > 0 && !hasRecordedRef.current && user) {
+      hasRecordedRef.current = true;
+      recordQuizCompletion(user.id, {
+        questionsAnswered: quiz.total,
+        correct: quiz.score,
+        incorrect: quiz.wrongCount,
+      }).catch(console.error);
+    }
+  }, [quiz.done, quiz.total, quiz.score, quiz.wrongCount, user]);
   const latestResult = quiz.results.at(-1);
 
   const correctAnswer = Array.isArray(latestResult?.question.correct_answer)

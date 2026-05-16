@@ -1,12 +1,22 @@
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
+import { Image } from "expo-image";
+import { View } from "react-native";
 
-import { AppButton, AppCard, AppInput, AppText, NavLink, Screen } from "@/components";
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  AppText,
+  NavLink,
+  Screen,
+} from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getAuthErrorMessage,
   signInWithEmail,
 } from "@/services/auth";
+import Images from "@/constants/images";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -34,12 +44,32 @@ export default function LoginScreen() {
   }
 
   return (
-    <Screen scroll>
-      <AppText variant="title">Welcome back</AppText>
-      <AppText variant="body" className="text-text-muted">
-        Log in to sync decks, study progress, and room play.
-      </AppText>
+    <Screen
+      scroll
+      header={
+        <NavLink href="/onboarding" title="Back" variant="ghost" />
+      }
+    >
+      {/* Illustration */}
+      <View className="items-center py-2">
+        <View className="h-44 w-44 items-center justify-center rounded-3xl bg-lavender-soft">
+          <Image
+            source={Images.floral01}
+            style={{ width: 130, height: 130 }}
+            contentFit="contain"
+          />
+        </View>
+      </View>
 
+      {/* Heading */}
+      <View className="gap-2">
+        <AppText variant="title">Welcome back</AppText>
+        <AppText variant="body" className="text-text-muted">
+          Log in to sync your decks and study progress.
+        </AppText>
+      </View>
+
+      {/* Form */}
       <AppCard className="gap-4">
         <AppInput
           label="Email"
@@ -56,16 +86,21 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
         />
-        {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
+        {error ? (
+          <AppText variant="caption" className="text-danger">
+            {error}
+          </AppText>
+        ) : null}
         <AppButton
-          title={submitting ? "Logging in..." : "Continue"}
+          title={submitting ? "Logging in…" : "Continue"}
           variant="primary"
           disabled={submitting}
           onPress={handleEmailLogin}
         />
-        {/* OAuth is temporarily disabled while email auth is the primary flow. */}
-        <NavLink href="/register" title="Create an account" variant="ghost" />
       </AppCard>
+
+      {/* Footer */}
+      <NavLink href="/register" title="New here? Create an account" variant="ghost" />
     </Screen>
   );
 }

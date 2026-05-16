@@ -6,8 +6,8 @@ import {
   AppText,
   DeckCard,
   EmptyState,
+  LearningDashboard,
   NavLink,
-  ProgressSummaryCard,
   Screen,
 } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,11 +58,9 @@ export default function HomeScreen() {
             layout="icon-only"
             onPress={async () => {
               try {
-                // console.log("Logging out...");
                 await signOut();
-                // console.log("Logged out");
-              } catch (error) {
-                console.error("Logout failed:", error);
+              } catch (err) {
+                console.error("Logout failed:", err);
               }
             }}
           />
@@ -80,10 +78,12 @@ export default function HomeScreen() {
         </AppText>
       ) : null}
 
-      <ProgressSummaryCard
-        studiedCount={progress.studiedCount}
-        streakLabel="0"
-        accuracyLabel="0%"
+      <LearningDashboard
+        stats={progress.stats}
+        weeklyActivity={progress.weeklyActivity}
+        todayCards={progress.todayCards}
+        accuracy={progress.accuracy}
+        loading={progress.loading}
       />
 
       <View className="flex-row gap-2">
@@ -101,9 +101,6 @@ export default function HomeScreen() {
         <View className="flex-1">
           <NavLink href="/decks/new" title="Create a deck" />
         </View>
-        {/* <View className="flex-1">
-          <NavLink href="/study" title="Study" />
-        </View> */}
       </View>
 
       <View className="gap-4">

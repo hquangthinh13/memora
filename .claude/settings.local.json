@@ -3,7 +3,12 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\" -Recurse -Name)",
       "Bash(Sort-Object)",
-      "PowerShell(head -100)"
+      "PowerShell(head -100)",
+      "Bash(claude mcp *)",
+      "Bash(npx skills *)",
+      "mcp__mcp-registry__list_connectors",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

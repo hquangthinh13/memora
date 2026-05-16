@@ -497,6 +497,64 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["room_answers"]["Insert"]>;
         Relationships: [];
       };
+      user_learning_stats: {
+        Row: {
+          user_id: string;
+          total_cards_studied: number;
+          total_quizzes_completed: number;
+          total_questions_answered: number;
+          total_correct_answers: number;
+          total_incorrect_answers: number;
+          current_streak: number;
+          longest_streak: number;
+          last_studied_on: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          total_cards_studied?: number;
+          total_quizzes_completed?: number;
+          total_questions_answered?: number;
+          total_correct_answers?: number;
+          total_incorrect_answers?: number;
+          current_streak?: number;
+          longest_streak?: number;
+          last_studied_on?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_learning_stats"]["Insert"]>;
+        Relationships: [];
+      };
+      learning_activity_days: {
+        Row: {
+          id: string;
+          user_id: string;
+          activity_date: string;
+          cards_studied: number;
+          quizzes_completed: number;
+          questions_answered: number;
+          correct_answers: number;
+          incorrect_answers: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          activity_date: string;
+          cards_studied?: number;
+          quizzes_completed?: number;
+          questions_answered?: number;
+          correct_answers?: number;
+          incorrect_answers?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["learning_activity_days"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

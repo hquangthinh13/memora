@@ -7,6 +7,7 @@ import {
   AppInput,
   AppText,
   AvatarPicker,
+  NavLink,
   Screen,
   SectionHeader,
 } from "@/components";
@@ -143,6 +144,19 @@ export default function EditProfileScreen() {
           variant="primary"
           disabled={submitting}
           onPress={handleSave}
+        />
+      </AppCard>
+
+      {/* Security */}
+      <AppCard className="gap-3">
+        <AppText variant="subtitle">Security</AppText>
+        <AppText variant="body" className="text-text-muted">
+          Change your password using email verification.
+        </AppText>
+        <NavLink
+          href="/profile/change-password"
+          title="Change password"
+          variant="secondary"
         />
       </AppCard>
     </Screen>

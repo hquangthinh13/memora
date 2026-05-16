@@ -56,18 +56,18 @@ export default function HomeScreen() {
       />
 
       <View className="flex-row gap-2">
-        <View className="flex-1">
-          <NavLink
-            href={firstDeck ? `/study?deckId=${firstDeck.id}` : "/library"}
-            title="Continue"
-            variant="primary"
-          />
+          <View className="flex-1">
+            <NavLink
+              href={firstDeck?.status === "Ready" ? `/study?deckId=${firstDeck.id}` : "/library"}
+              title="Continue"
+              variant="primary"
+            />
         </View>
         <View className="flex-1">
           <NavLink href="/decks/new" title="Create" />
         </View>
         <View className="flex-1">
-          <NavLink href="/rooms" title="Join" />
+          <NavLink href="/topics" title="Topics" />
         </View>
       </View>
 

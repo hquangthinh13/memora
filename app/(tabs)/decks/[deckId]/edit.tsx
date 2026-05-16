@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
-import { AppButton, AppCard, AppInput, AppText, DeckCoverPicker, Screen } from "@/components";
+import { AppButton, AppCard, AppInput, AppText, DeckCoverPicker, Screen, TopicSelect } from "@/components";
 import { useDeckDetail } from "@/hooks/useDeckDetail";
 import { getErrorMessage } from "@/lib/errors";
 import { safelyDeleteCloudinaryImage, uploadImageToCloudinary } from "@/services/cloudinary";
@@ -12,7 +12,7 @@ export default function EditDeckScreen() {
   const { deck, loading, error, saveDeck } = useDeckDetail(deckId);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [language, setLanguage] = useState("");
+  const [topicId, setTopicId] = useState<string | null>(null);
   const [selectedCoverUri, setSelectedCoverUri] = useState<string | null>(null);
   const [coverRemoved, setCoverRemoved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -23,7 +23,7 @@ export default function EditDeckScreen() {
     if (!deck) return;
     setTitle(deck.title);
     setDescription(deck.description ?? "");
-    setLanguage(deck.language ?? "");
+    setTopicId(deck.topic_id);
     setSelectedCoverUri(null);
     setCoverRemoved(false);
   }, [deck]);
@@ -51,7 +51,7 @@ export default function EditDeckScreen() {
       await saveDeck({
         title: title.trim(),
         description: description.trim() || null,
-        language: language.trim() || null,
+        topic_id: topicId,
         ...(uploadedCover
           ? {
               cover_image_url: uploadedCover.secureUrl,
@@ -97,7 +97,14 @@ export default function EditDeckScreen() {
       <AppCard className="gap-4">
         <AppInput label="Deck title" placeholder="Travel phrases" value={title} onChangeText={setTitle} />
         <AppInput label="Description" placeholder="Everyday phrases for trips" value={description} onChangeText={setDescription} />
-        <AppInput label="Language" placeholder="French" value={language} onChangeText={setLanguage} />
+        <TopicSelect
+          value={topicId}
+          onChange={(id) => {
+            setSubmitError(null);
+            setTopicId(id);
+          }}
+          disabled={submitting}
+        />
         <DeckCoverPicker
           imageUri={selectedCoverUri ?? (coverRemoved ? null : deck?.cover_image_url ?? deck?.cover_url)}
           disabled={submitting}

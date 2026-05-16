@@ -1,30 +1,42 @@
 import { supabase } from "@/lib/supabase";
 import type { Inserts, Tables, Updates } from "@/types/database";
 import { safelyDeleteCloudinaryImage } from "./cloudinary";
+import { normalizeCard } from "./cards";
 
 export type Deck = Tables<"decks">;
 export type Card = Tables<"cards">;
+export type Topic = Tables<"topics">;
+export type Question = Tables<"questions">;
 export type DeckCollaborator = Tables<"deck_collaborators">;
 export type DeckPermission = "owner" | "editor" | "viewer";
 export type DeckSummary = Deck & {
   card_count: number;
+  question_count: number;
   collaborator_count: number;
   permission: DeckPermission;
+  topics?: Pick<Topic, "id" | "name"> | null;
 };
 export type DeckWithCards = Deck & {
   cards: Card[];
+  questions?: Pick<Question, "id">[];
   deck_collaborators?: DeckCollaborator[];
   card_count: number;
+  question_count: number;
   collaborator_count: number;
   permission: DeckPermission;
+  topics?: Pick<Topic, "id" | "name"> | null;
 };
 type DeckSummaryRow = Deck & {
   cards?: Pick<Card, "id">[];
+  questions?: Pick<Question, "id">[];
   deck_collaborators?: DeckCollaborator[];
+  topics?: Pick<Topic, "id" | "name"> | null;
 };
 type DeckDetailRow = Deck & {
   cards?: Card[];
+  questions?: Pick<Question, "id">[];
   deck_collaborators?: DeckCollaborator[];
+  topics?: Pick<Topic, "id" | "name"> | null;
 };
 
 function getPermission(
@@ -53,7 +65,7 @@ export async function listDecks() {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("decks")
-    .select("*, cards(id), deck_collaborators(*)")
+    .select("*, topics(id, name), cards(id), questions(id), deck_collaborators(*)")
     .eq("is_archived", false)
     .order("updated_at", { ascending: false });
 
@@ -65,6 +77,7 @@ export async function listDecks() {
 
   return rows.map((deck) => {
     const cards = Array.isArray(deck.cards) ? deck.cards : [];
+    const questions = Array.isArray(deck.questions) ? deck.questions : [];
     const collaborators =
       Array.isArray(deck.deck_collaborators)
         ? deck.deck_collaborators
@@ -73,6 +86,7 @@ export async function listDecks() {
     return {
       ...deck,
       card_count: cards.length,
+      question_count: questions.length,
       collaborator_count: collaborators.filter((item) => item.status === "accepted").length,
       permission: getPermission(
         { owner_id: deck.owner_id, deck_collaborators: collaborators },
@@ -86,7 +100,7 @@ export async function getDeckDetail(deckId: string) {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("decks")
-    .select("*, cards(*), deck_collaborators(*)")
+    .select("*, topics(id, name), cards(*), questions(id), deck_collaborators(*)")
     .eq("id", deckId)
     .maybeSingle();
 
@@ -101,13 +115,16 @@ export async function getDeckDetail(deckId: string) {
     Array.isArray(row.deck_collaborators)
       ? row.deck_collaborators
       : [];
-  const cards = Array.isArray(row.cards) ? row.cards : [];
+  const cards = Array.isArray(row.cards) ? row.cards.map(normalizeCard) : [];
+  const questions = Array.isArray(row.questions) ? row.questions : [];
 
   return {
     ...row,
     cards,
+    questions,
     deck_collaborators: collaborators,
     card_count: cards.length,
+    question_count: questions.length,
     collaborator_count: collaborators.filter((item) => item.status === "accepted").length,
     permission: getPermission(
       { owner_id: row.owner_id, deck_collaborators: collaborators },

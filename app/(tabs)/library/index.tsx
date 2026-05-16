@@ -8,7 +8,7 @@ export default function LibraryScreen() {
     <Screen scroll contentClassName="pb-32">
       <AppText variant="title">My Library</AppText>
       <AppText variant="body" className="text-text-muted">
-        Your owned, shared, public, and collaborative decks live here.
+        Your AI-generated decks, cards, and quiz questions live here.
       </AppText>
 
       <NavLink href="/decks/new" title="Create deck" variant="primary" />

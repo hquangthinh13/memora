@@ -4,10 +4,11 @@ import { AppText } from "./AppText";
 type StaticFlashcardProps = {
   front: string;
   back: string;
-  hint?: string | null;
+  explanation?: string | null;
+  tags?: string[];
 };
 
-export function StaticFlashcard({ front, back, hint }: StaticFlashcardProps) {
+export function StaticFlashcard({ front, back, explanation, tags = [] }: StaticFlashcardProps) {
   return (
     <AppCard className="gap-3">
       <AppText variant="caption" className="font-sans-medium text-text">
@@ -20,7 +21,12 @@ export function StaticFlashcard({ front, back, hint }: StaticFlashcardProps) {
       <AppText variant="body" className="text-text-muted">
         {back}
       </AppText>
-      {hint ? <AppText variant="caption">Hint: {hint}</AppText> : null}
+      {explanation ? (
+        <AppText variant="caption">Explanation: {explanation}</AppText>
+      ) : null}
+      {tags.length ? (
+        <AppText variant="caption">Tags: {tags.join(", ")}</AppText>
+      ) : null}
     </AppCard>
   );
 }

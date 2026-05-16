@@ -18,7 +18,7 @@ export function Screen({
   scroll = false,
 }: ScreenProps) {
   return (
-    <SafeAreaView className={cn("flex-1 bg-background", className)}>
+    <SafeAreaView className={cn("flex-1 bg-background pb-24", className)}>
       {scroll ? (
         <ScrollView
           className="flex-1"

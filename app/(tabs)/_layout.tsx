@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BookBookmark02Icon,
   Home07Icon,
-  Search01Icon,
+  BookOpen01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, HugeiconsProps } from "@hugeicons/react-native";
 
@@ -20,9 +20,9 @@ const tabs = [
     icons: Home07Icon,
   },
   {
-    name: "rooms/index",
-    title: "Rooms",
-    icons: Search01Icon,
+    name: "topics/index",
+    title: "Topics",
+    icons: BookOpen01Icon,
   },
   {
     name: "library/index",
@@ -42,7 +42,9 @@ const hiddenScreens = [
   "decks/[deckId]/index",
   "decks/[deckId]/edit",
   "decks/new",
+  "quiz",
   "rooms/lobby",
+  "rooms/index",
   "rooms/play",
   "rooms/result",
   "study",

@@ -45,6 +45,20 @@ export function DeckCard({ deck, href, compact = false, className }: DeckCardPro
       )}
 
       <View className="flex-1 gap-1">
+        <View className="flex-row flex-wrap items-center gap-2">
+          <View className="rounded-full border border-border bg-surface-soft px-3 py-1">
+            <AppText variant="caption" className="font-sans-semibold text-text">
+              {deck.status}
+            </AppText>
+          </View>
+          {deck.topics?.name ? (
+            <View className="rounded-full bg-mint-soft px-3 py-1">
+              <AppText variant="caption" className="font-sans-medium text-text">
+                {deck.topics.name}
+              </AppText>
+            </View>
+          ) : null}
+        </View>
         <AppText variant="subtitle" numberOfLines={2}>
           {deck.title}
         </AppText>
@@ -52,7 +66,7 @@ export function DeckCard({ deck, href, compact = false, className }: DeckCardPro
           {deck.description ?? "No description yet."}
         </AppText>
         <AppText variant="caption" className="font-sans-medium text-text">
-          {deck.card_count} cards - {deck.collaborator_count} collaborators
+          {deck.card_count} cards - {deck.question_count} questions
         </AppText>
       </View>
     </Pressable>

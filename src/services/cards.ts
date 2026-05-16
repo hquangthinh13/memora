@@ -2,6 +2,22 @@ import { supabase } from "@/lib/supabase";
 import type { Inserts, Tables, Updates } from "@/types/database";
 
 export type Card = Tables<"cards">;
+export type CanonicalCardInput = {
+  deck_id: string;
+  front: string;
+  back: string;
+  explanation?: string | null;
+  difficulty?: number;
+  tags?: string[];
+};
+
+export function normalizeCard(card: Card): Card {
+  return {
+    ...card,
+    front: card.front ?? card.term,
+    back: card.back ?? card.definition,
+  };
+}
 
 export async function listCards(deckId: string) {
   const { data, error } = await supabase
@@ -14,7 +30,7 @@ export async function listCards(deckId: string) {
     throw error;
   }
 
-  return data;
+  return (data ?? []).map(normalizeCard);
 }
 
 export async function createCard(card: Inserts<"cards">) {
@@ -29,6 +45,19 @@ export async function createCard(card: Inserts<"cards">) {
   }
 
   return data;
+}
+
+export async function createCanonicalCard(card: CanonicalCardInput) {
+  return createCard({
+    deck_id: card.deck_id,
+    front: card.front,
+    back: card.back,
+    term: card.front,
+    definition: card.back,
+    explanation: card.explanation ?? null,
+    difficulty: card.difficulty ?? 3,
+    tags: card.tags ?? [],
+  });
 }
 
 export async function updateCard(cardId: string, card: Updates<"cards">) {

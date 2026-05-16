@@ -42,8 +42,8 @@ export default function StudyScreen() {
           </AppCard>
 
           <LearningFlashcard
-            front={session.currentCard.term ?? "Untitled card"}
-            back={session.currentCard.definition ?? "No answer yet."}
+            front={session.currentCard.front ?? "Untitled card"}
+            back={session.currentCard.back ?? "No answer yet."}
             flipped={session.answerVisible}
             onPress={session.reveal}
           />

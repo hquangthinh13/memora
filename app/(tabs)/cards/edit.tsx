@@ -2,14 +2,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 
 import { AppButton, AppCard, AppInput, AppText, Screen } from "@/components";
-import { createCard } from "@/services/cards";
+import { createCanonicalCard } from "@/services/cards";
 
 export default function EditCardScreen() {
   const router = useRouter();
   const { deckId } = useLocalSearchParams<{ deckId?: string }>();
-  const [term, setTerm] = useState("");
-  const [definition, setDefinition] = useState("");
-  const [hint, setHint] = useState("");
+  const [front, setFront] = useState("");
+  const [back, setBack] = useState("");
+  const [explanation, setExplanation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,8 +19,8 @@ export default function EditCardScreen() {
       return;
     }
 
-    if (!term.trim() && !definition.trim()) {
-      setError("Add a term or definition.");
+    if (!front.trim() || !back.trim()) {
+      setError("Add both a front and back.");
       return;
     }
 
@@ -28,11 +28,11 @@ export default function EditCardScreen() {
     setError(null);
 
     try {
-      await createCard({
+      await createCanonicalCard({
         deck_id: deckId,
-        term: term.trim() || null,
-        definition: definition.trim() || null,
-        hint: hint.trim() || null,
+        front: front.trim(),
+        back: back.trim(),
+        explanation: explanation.trim() || null,
       });
       router.replace(`/decks/${deckId}`);
     } catch (caught) {
@@ -46,13 +46,21 @@ export default function EditCardScreen() {
     <Screen scroll>
       <AppText variant="title">Create card</AppText>
       <AppText variant="body" className="text-text-muted">
-        Add the front, answer, and a small hint.
+        Add the prompt, answer, and explanation.
       </AppText>
 
       <AppCard className="gap-4">
-        <AppInput label="Term" placeholder="Bonjour" value={term} onChangeText={setTerm} />
-        <AppInput label="Definition" placeholder="Hello" value={definition} onChangeText={setDefinition} />
-        <AppInput label="Hint" placeholder="Common greeting" value={hint} onChangeText={setHint} />
+        <AppInput label="Front" placeholder="What does HTTP 404 mean?" value={front} onChangeText={setFront} />
+        <AppInput label="Back" placeholder="Resource not found" value={back} onChangeText={setBack} />
+        <AppInput
+          label="Explanation"
+          placeholder="HTTP 404 means the server could not find the requested resource."
+          value={explanation}
+          onChangeText={setExplanation}
+          multiline
+          inputClassName="min-h-28 py-3"
+          textAlignVertical="top"
+        />
         {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
         <AppButton
           title={submitting ? "Saving..." : "Save card"}

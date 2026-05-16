@@ -1,6 +1,6 @@
 import { Image, View } from "react-native";
 
-import { AppButton, AppCard, AppText, EmptyState, Screen, UserItem } from "@/components";
+import { AppButton, AppCard, AppText, EmptyState, NavLink, Screen, UserItem } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfileOverview } from "@/hooks/useProfileOverview";
 import { signOut } from "@/services/auth";
@@ -27,6 +27,14 @@ export default function ProfileScreen() {
       </View>
 
       {overview.error ? <AppText variant="caption" className="text-danger">{overview.error}</AppText> : null}
+
+      <AppCard className="gap-3 bg-surface-soft">
+        <AppText variant="subtitle">My topics</AppText>
+        <AppText variant="caption">
+          Create and organize the subjects used for AI deck generation.
+        </AppText>
+        <NavLink href="/topics" title="Manage topics" variant="primary" />
+      </AppCard>
 
       <View className="flex-row gap-3">
         <AppCard className="flex-1 items-center bg-mint-soft">

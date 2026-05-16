@@ -2,8 +2,9 @@ import { Redirect, Tabs } from "expo-router";
 import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  BookBookmark02Icon,
   Home07Icon,
+  UserIcon,
+  LibraryIcon,
   BookOpen01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, HugeiconsProps } from "@hugeicons/react-native";
@@ -20,24 +21,20 @@ const tabs = [
     icons: Home07Icon,
   },
   {
-    name: "topics/index",
-    title: "Topics",
-    icons: BookOpen01Icon,
-  },
-  {
     name: "library/index",
     title: "My Library",
-    icons: BookBookmark02Icon,
+    icons: BookOpen01Icon,
   },
   {
     name: "profile/index",
     title: "Profile",
-    icons: Home07Icon,
+    icons: UserIcon,
   },
 ];
 
 const hiddenScreens = [
   "cards/edit",
+  "topics/index",
   "decks/index",
   "decks/[deckId]/index",
   "decks/[deckId]/edit",

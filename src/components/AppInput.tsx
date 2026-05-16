@@ -36,7 +36,7 @@ export function AppInput({
       <TextInput
         placeholderTextColor={placeholderTextColor}
         className={cn(
-          "min-h-12 rounded-xl border bg-surface px-4 font-sans text-base text-text",
+          "min-h-12 rounded-md border bg-surface px-4 font-sans text-base text-text",
           error ? "border-danger" : "border-border",
           inputClassName,
         )}

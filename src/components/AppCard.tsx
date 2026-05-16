@@ -11,7 +11,7 @@ export function AppCard({ className, ...props }: AppCardProps) {
   return (
     <View
       className={cn(
-        "rounded-3xl border border-border bg-surface p-card",
+        "rounded-lg border border-border bg-surface p-card",
         className,
       )}
       {...props}

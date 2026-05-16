@@ -13,13 +13,18 @@ type DeckCardProps = {
   className?: string;
 };
 
-export function DeckCard({ deck, href, compact = false, className }: DeckCardProps) {
+export function DeckCard({
+  deck,
+  href,
+  compact = false,
+  className,
+}: DeckCardProps) {
   const coverUrl = deck.cover_image_url ?? deck.cover_url;
   const content = (
     <Pressable
       className={cn(
-        "gap-4 rounded-3xl border border-border bg-surface p-card active:opacity-80",
-        compact && "flex-row items-center",
+        "rounded-lg border border-border bg-surface active:opacity-80 overflow-hidden",
+        compact && "gap-2 flex-row items-center",
         className,
       )}
     >
@@ -27,15 +32,15 @@ export function DeckCard({ deck, href, compact = false, className }: DeckCardPro
         <Image
           source={{ uri: coverUrl }}
           className={cn(
-            "rounded-2xl bg-surface-soft",
-            compact ? "size-20" : "h-36 w-full",
+            "bg-surface-soft",
+            compact ? "size-24 rounded-xs ml-5" : "h-40 w-full",
           )}
         />
       ) : (
         <View
           className={cn(
-            "items-center justify-center rounded-2xl bg-peach-soft",
-            compact ? "size-20" : "h-36 w-full",
+            " items-center justify-center rounded-2xl bg-peach-soft",
+            compact ? "size-20" : "h-40 w-full",
           )}
         >
           <AppText variant="subtitle" className="text-center">
@@ -43,9 +48,18 @@ export function DeckCard({ deck, href, compact = false, className }: DeckCardPro
           </AppText>
         </View>
       )}
+      <View className={cn("flex-1 gap-1 p-card", compact ? "" : "pt-4")}>
+        <AppText variant="subtitle" numberOfLines={2}>
+          {deck.title}
+        </AppText>
+        <AppText variant="caption" numberOfLines={2}>
+          {deck.description ?? "No description yet."}
+        </AppText>
 
-      <View className="flex-1 gap-1">
-        <View className="flex-row flex-wrap items-center gap-2">
+        <AppText variant="caption" className="font-sans-medium text-text">
+          {deck.card_count} cards - {deck.question_count} questions
+        </AppText>
+        <View className="flex-row flex-wrap items-center gap-2 mt-3">
           <View className="rounded-full border border-border bg-surface-soft px-3 py-1">
             <AppText variant="caption" className="font-sans-semibold text-text">
               {deck.status}
@@ -59,15 +73,6 @@ export function DeckCard({ deck, href, compact = false, className }: DeckCardPro
             </View>
           ) : null}
         </View>
-        <AppText variant="subtitle" numberOfLines={2}>
-          {deck.title}
-        </AppText>
-        <AppText variant="caption" numberOfLines={2}>
-          {deck.description ?? "No description yet."}
-        </AppText>
-        <AppText variant="caption" className="font-sans-medium text-text">
-          {deck.card_count} cards - {deck.question_count} questions
-        </AppText>
       </View>
     </Pressable>
   );

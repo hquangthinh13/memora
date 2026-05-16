@@ -58,7 +58,7 @@ export default function QuizScreen() {
       : "Incorrect";
 
   const resultDescription = latestResult?.timedOut
-    ? "You didn't answer this question before the timer ran out."
+    ? `You ran out of time.\n\nCorrect answer: ${correctAnswer}`
     : latestResult?.correct
       ? `Your answer: ${quiz.selectedAnswer}`
       : `Your answer: ${quiz.selectedAnswer}\n\nCorrect answer: ${correctAnswer}`;

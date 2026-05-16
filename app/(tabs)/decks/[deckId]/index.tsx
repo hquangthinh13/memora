@@ -12,14 +12,19 @@ import {
   StaticFlashcard,
   SectionHeader,
   ConfirmDialog,
+  UserItem,
 } from "@/components";
+import { useDeckCollaborators } from "@/hooks/useDeckCollaborators";
 import { useDeckGeneration } from "@/hooks/useDeckGeneration";
 import { useDeckDetail } from "@/hooks/useDeckDetail";
+import { useFriends } from "@/hooks/useFriends";
 import { useQuestions } from "@/hooks/useQuestions";
 import { getErrorMessage } from "@/lib/errors";
 import { deleteDeckWithCoverImage } from "@/services/decks";
+import { leaveDeck, type CollaboratorRole } from "@/services/deckCollaborators";
 import {
   Add01Icon,
+  Cancel01Icon,
   Delete01Icon,
   Edit01Icon,
   UserAdd01Icon,
@@ -35,9 +40,16 @@ export default function DeckDetailScreen() {
   }>();
   const [pendingDelete, setPendingDelete] = useState(false);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
+  const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
+  const [inviteRole, setInviteRole] = useState<CollaboratorRole>("viewer");
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const { deck, loading, error, refresh } = useDeckDetail(deckId);
   const questions = useQuestions(deckId);
   const generation = useDeckGeneration(deckId);
+  const collaborators = useDeckCollaborators(deckId);
+  const { friends } = useFriends();
   const generationStarted = useRef(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
@@ -92,6 +104,34 @@ export default function DeckDetailScreen() {
       await questions.refresh();
     }
   }
+
+  async function handleInvite(userId: string) {
+    setInvitingId(userId);
+    try {
+      await collaborators.inviteFriend(userId, inviteRole);
+    } finally {
+      setInvitingId(null);
+    }
+  }
+
+  async function handleLeaveDeck() {
+    const myEntry = collaborators.collaborators.find(
+      (c) => c.status === "accepted" && deck?.permission !== "owner",
+    );
+    if (!myEntry) return;
+    setLeaving(true);
+    try {
+      await leaveDeck(myEntry.id);
+      router.replace("/(tabs)/library");
+    } finally {
+      setLeaving(false);
+    }
+  }
+
+  // IDs of users already invited or collaborating on this deck
+  const alreadyInvitedIds = new Set(
+    collaborators.collaborators.map((c) => c.user_id),
+  );
 
   if (deleted) {
     return <Redirect href="/(tabs)/library" />;
@@ -273,6 +313,55 @@ export default function DeckDetailScreen() {
               />
             ) : null}
           </View>
+
+          {/* Collaborators section */}
+          {(canManageDeck || collaborators.collaborators.length > 0) ? (
+            <View className="gap-3">
+              <AppText variant="subtitle">Collaborators</AppText>
+              {collaborators.loading ? (
+                <AppText variant="caption" className="text-center text-text-muted">
+                  Loading...
+                </AppText>
+              ) : collaborators.collaborators.length === 0 ? (
+                <EmptyState
+                  title="No collaborators"
+                  description="Invite friends to view or edit this deck."
+                />
+              ) : (
+                collaborators.collaborators.map((c) => (
+                  <UserItem
+                    key={c.id}
+                    name={c.profile?.display_name ?? c.profile?.email ?? "User"}
+                    subtitle={`${c.role} · ${c.status}`}
+                    avatarUrl={c.profile?.avatar_url}
+                    action={
+                      canManageDeck ? (
+                        <AppButton
+                          layout="icon-only"
+                          icon={Cancel01Icon}
+                          variant="ghost"
+                          className="h-10 w-10 min-h-10 rounded-full"
+                          onPress={() => void collaborators.removeCollaborator(c.id)}
+                        />
+                      ) : null
+                    }
+                  />
+                ))
+              )}
+            </View>
+          ) : null}
+
+          {/* Leave deck (non-owner collaborator) */}
+          {!canManageDeck && deck.permission !== "owner" ? (
+            <AppButton
+              title="Leave deck"
+              variant="destructive"
+              icon={Cancel01Icon}
+              layout="icon-leading"
+              className="justify-start rounded-2xl bg-surface px-4"
+              onPress={() => setLeaveConfirm(true)}
+            />
+          ) : null}
         </>
       ) : null}
 
@@ -317,9 +406,9 @@ export default function DeckDetailScreen() {
                   layout="icon-leading"
                   variant="ghost"
                   className="justify-start rounded-2xl bg-surface px-4"
-                  disabled
                   onPress={() => {
                     setActionSheetOpen(false);
+                    setInviteSheetOpen(true);
                   }}
                 />
 
@@ -356,6 +445,85 @@ export default function DeckDetailScreen() {
           void handleDeleteDeck();
         }}
       />
+
+      <ConfirmDialog
+        visible={leaveConfirm}
+        title="Leave deck?"
+        description="You will lose access to this shared deck."
+        confirmTitle="Leave"
+        loadingTitle="Leaving..."
+        loading={leaving}
+        onCancel={() => {
+          if (!leaving) setLeaveConfirm(false);
+        }}
+        onConfirm={() => void handleLeaveDeck()}
+      />
+
+      <DraggableBottomSheet
+        visible={inviteSheetOpen}
+        title="Invite a friend"
+        onClose={() => setInviteSheetOpen(false)}
+      >
+        <View className="gap-4">
+          {/* Role picker */}
+          <View className="flex-row gap-2">
+            <View className="flex-1">
+              <AppButton
+                title="Viewer"
+                variant={inviteRole === "viewer" ? "primary" : "secondary"}
+                onPress={() => setInviteRole("viewer")}
+              />
+            </View>
+            <View className="flex-1">
+              <AppButton
+                title="Editor"
+                variant={inviteRole === "editor" ? "primary" : "secondary"}
+                onPress={() => setInviteRole("editor")}
+              />
+            </View>
+          </View>
+
+          {/* Friends list */}
+          {friends.length === 0 ? (
+            <EmptyState
+              title="No friends yet"
+              description="Add friends from the Friends tab first."
+            />
+          ) : (
+            <View className="gap-2">
+              {friends.map((f) => {
+                const alreadyIn = alreadyInvitedIds.has(f.friend.id);
+                const isInviting = invitingId === f.friend.id;
+                return (
+                  <UserItem
+                    key={f.id}
+                    name={f.friend.display_name ?? f.friend.email ?? "Friend"}
+                    subtitle={f.friend.email ?? undefined}
+                    avatarUrl={f.friend.avatar_url}
+                    action={
+                      alreadyIn ? (
+                        <View className="rounded-full bg-mint-soft px-3 py-1">
+                          <AppText variant="caption">Invited</AppText>
+                        </View>
+                      ) : (
+                        <AppButton
+                          title={isInviting ? "..." : "Invite"}
+                          variant="secondary"
+                          icon={UserAdd01Icon}
+                          layout="icon-leading"
+                          className="h-9 min-h-9 rounded-full px-3"
+                          disabled={isInviting}
+                          onPress={() => void handleInvite(f.friend.id)}
+                        />
+                      )
+                    }
+                  />
+                );
+              })}
+            </View>
+          )}
+        </View>
+      </DraggableBottomSheet>
     </Screen>
   );
 }

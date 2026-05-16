@@ -6,11 +6,14 @@ import {
   UserIcon,
   LibraryIcon,
   BookOpen01Icon,
+  UserGroup02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, HugeiconsProps } from "@hugeicons/react-native";
 
 import { colors, components } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeckInvites } from "@/hooks/useDeckInvites";
+import { useFriends } from "@/hooks/useFriends";
 import { cn } from "@/lib/cn";
 import { needsPasswordSetup } from "@/services/auth";
 
@@ -24,6 +27,11 @@ const tabs = [
     name: "library/index",
     title: "My Library",
     icons: BookOpen01Icon,
+  },
+  {
+    name: "friends/index",
+    title: "Friends",
+    icons: UserGroup02Icon,
   },
   {
     name: "profile/index",
@@ -76,6 +84,9 @@ const TabsIcon = ({
 const TabsLayout = () => {
   const insets = useSafeAreaInsets();
   const { loading, session, user } = useAuth();
+  const { pendingCount: friendRequests } = useFriends();
+  const { pendingCount: deckInvites } = useDeckInvites();
+  const totalPending = friendRequests + deckInvites;
 
   if (loading) {
     return null;
@@ -114,28 +125,43 @@ const TabsLayout = () => {
         },
       }}
     >
-      {tabs.map((tab) => (
-        <Tabs.Screen
-          key={tab.name}
-          name={tab.name}
-          options={{
-            title: tab.title,
-            tabBarIcon: ({ focused }) => (
-              <TabsIcon focused={focused} icon={tab.icons} />
-            ),
-            tabBarLabel: ({ focused }) => (
-              <Text
-                className={cn(
-                  "mt-2 text-center font-sans-medium text-xs",
-                  focused ? "text-text" : "text-text-muted",
-                )}
-              >
-                {tab.title}
-              </Text>
-            ),
-          }}
-        />
-      ))}
+      {tabs.map((tab) => {
+        const isFriendsTab = tab.name === "friends/index";
+        return (
+          <Tabs.Screen
+            key={tab.name}
+            name={tab.name}
+            options={{
+              title: tab.title,
+              tabBarIcon: ({ focused }) => (
+                <View>
+                  <TabsIcon focused={focused} icon={tab.icons} />
+                  {isFriendsTab && totalPending > 0 ? (
+                    <View
+                      className="absolute right-1 top-1 min-w-5 items-center justify-center rounded-full bg-peach px-1"
+                      style={{ height: 18 }}
+                    >
+                      <Text className="font-sans-semibold text-xs text-text">
+                        {totalPending > 99 ? "99+" : totalPending}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ),
+              tabBarLabel: ({ focused }) => (
+                <Text
+                  className={cn(
+                    "mt-2 text-center font-sans-medium text-xs",
+                    focused ? "text-text" : "text-text-muted",
+                  )}
+                >
+                  {tab.title}
+                </Text>
+              ),
+            }}
+          />
+        );
+      })}
       {hiddenScreens.map((name) => (
         <Tabs.Screen
           key={name}

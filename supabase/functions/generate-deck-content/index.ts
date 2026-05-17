@@ -24,6 +24,7 @@ type GeneratedQuestion = {
 };
 
 type GeneratedDeckContent = {
+  title: string;
   description: string;
   cards: GeneratedCard[];
   questions: GeneratedQuestion[];
@@ -160,6 +161,7 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
   }
 
   const obj = value as Record<string, unknown>;
+  const title = asNonEmptyString(obj.title, "title").slice(0, 80);
   const description = asNonEmptyString(obj.description, "description").slice(0, 280);
   const cardsInput = obj.cards;
   const questionsInput = obj.questions;
@@ -271,11 +273,11 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
     };
   });
 
-  return { description, cards, questions };
+  return { title, description, cards, questions };
 }
 
 function buildPrompt(
-  deck: { title: string; source_text: string },
+  deck: { topic_name: string; topic_description: string | null; source_text: string },
   isRetry = false,
 ): string {
   const sourceLength = deck.source_text.length;
@@ -308,7 +310,7 @@ Outputting mostly or only MCQ will cause this generation to fail entirely.\n`
 
   return `You are a quiz content generator for a mobile study app.
 ${retryWarning}
-Deck title: ${deck.title}
+Topic: ${deck.topic_name}${deck.topic_description ? ` — ${deck.topic_description}` : ""}
 
 Source material:
 ${deck.source_text}
@@ -317,6 +319,7 @@ Return ONLY a valid JSON object - no markdown, no code fences, no extra text.
 
 JSON shape:
 {
+  "title": "A concise deck title",
   "description": "A short, learner-friendly summary of what this deck teaches.",
   "cards": [
     {
@@ -369,22 +372,28 @@ JSON shape:
 
 RULES:
 
-1. DESCRIPTION - Generate a concise deck description.
+1. TITLE - Generate a concise deck title.
+   - 3 to 8 words.
+   - Descriptive of the topic and source content.
+   - Do not start with "Deck" or "Flashcards".
+   - Max 80 characters.
+
+2. DESCRIPTION - Generate a concise deck description.
    - 1-2 sentences, max 280 characters.
    - Explain what the learner will practice.
    - Do not mention "source notes" or sound like marketing copy.
 
-2. CARDS - Generate ${cardTarget} flashcards.
+3. CARDS - Generate ${cardTarget} flashcards.
    - front: short question or term.
    - back: concise answer.
    - explanation: 1-2 clear sentences.
    - difficulty: integer 1-5.
    - tags: lowercase strings, max 8.
 
-3. QUESTION DIVERSITY
+4. QUESTION DIVERSITY
 ${diversityRule}
 
-4. QUESTION FORMAT (follow exactly for each type):
+5. QUESTION FORMAT (follow exactly for each type):
 
    mcq
    - Concept recognition or comparison.
@@ -415,13 +424,13 @@ ${diversityRule}
    - hint: one short clue shown above the question, not the answer.
    - time_limit: 20.
 
-5. Every question must include a non-empty hint.
-6. Spell "mcq" exactly - never "mcp" or "multiple_choice".
-7. No duplicate cards or questions.
-8. Return valid JSON only.`.trim();
+6. Every question must include a non-empty hint.
+7. Spell "mcq" exactly - never "mcp" or "multiple_choice".
+8. No duplicate cards or questions.
+9. Return valid JSON only.`.trim();
 }
 async function generateWithGroq(
-  deck: { title: string; source_text: string },
+  deck: { topic_name: string; topic_description: string | null; source_text: string },
   isRetry = false,
 ): Promise<GeneratedDeckContent> {
   const apiKey = getRequiredEnv("GROQ_API_KEY");
@@ -525,7 +534,7 @@ Deno.serve(async (request) => {
 
     const { data: deck, error: deckError } = await adminClient
       .from("decks")
-      .select("id, owner_id, title, source_type, source_text")
+      .select("id, owner_id, title, source_type, source_text, topic_id")
       .eq("id", deckId)
       .maybeSingle();
 
@@ -546,8 +555,24 @@ Deno.serve(async (request) => {
       .update({ status: "Preparing", generation_error: null })
       .eq("id", deckId);
 
+    let topicName = "General";
+    let topicDescription: string | null = null;
+
+    if (deck.topic_id) {
+      const { data: topic } = await adminClient
+        .from("topics")
+        .select("name, description")
+        .eq("id", deck.topic_id)
+        .maybeSingle();
+      if (topic) {
+        topicName = topic.name;
+        topicDescription = topic.description ?? null;
+      }
+    }
+
     const generated = await generateWithGroq({
-      title: deck.title,
+      topic_name: topicName,
+      topic_description: topicDescription,
       source_text: deck.source_text.trim(),
     });
 
@@ -590,6 +615,7 @@ Deno.serve(async (request) => {
       .update({
         status: "Ready",
         generation_error: null,
+        title: generated.title,
         description: generated.description,
       })
       .eq("id", deckId);
@@ -598,7 +624,7 @@ Deno.serve(async (request) => {
       user_id: deck.owner_id,
       type: "deck_processing_completed",
       title: "Deck is ready",
-      message: `Your deck "${deck.title}" is ready to study.`,
+      message: `Your deck "${generated.title}" is ready to study.`,
       metadata: {
         deck_id: deckId,
         status: "Ready",
@@ -616,16 +642,14 @@ Deno.serve(async (request) => {
 
     if (adminClient && deckId) {
       let deckOwnerId: string | null = null;
-      let deckTitle: string | null = null;
 
       const { data: deckInfo } = await adminClient
         .from("decks")
-        .select("owner_id, title")
+        .select("owner_id")
         .eq("id", deckId)
         .maybeSingle();
 
       deckOwnerId = deckInfo?.owner_id ?? null;
-      deckTitle = deckInfo?.title ?? null;
 
       await adminClient
         .from("decks")
@@ -641,7 +665,7 @@ Deno.serve(async (request) => {
           user_id: deckOwnerId,
           type: "deck_processing_completed",
           title: "Deck processing failed",
-          message: `We could not finish processing "${deckTitle ?? "your deck"}".`,
+          message: `We could not finish generating your deck.`,
           metadata: {
             deck_id: deckId,
             status: "Failed",

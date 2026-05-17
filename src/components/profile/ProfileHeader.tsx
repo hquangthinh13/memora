@@ -15,7 +15,7 @@ type ProfileHeaderProps = {
   displayName: string;
   email?: string | null;
   friendCount: number;
-  publishedCount: number;
+  deckCount: number;
   topicCount: number;
 };
 
@@ -24,7 +24,7 @@ export function ProfileHeader({
   displayName,
   email,
   friendCount,
-  publishedCount,
+  deckCount,
   topicCount,
 }: ProfileHeaderProps) {
   return (
@@ -85,7 +85,7 @@ export function ProfileHeader({
         <AppCard className="flex-1 items-center gap-1 bg-peach-soft py-3">
           <MetaPill
             icon={BookOpen02Icon}
-            label={`${publishedCount} published`}
+            label={`${deckCount} decks`}
           />
         </AppCard>
 

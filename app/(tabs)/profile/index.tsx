@@ -24,9 +24,9 @@ import { ProfileSectionHeader } from "@/components";
 import { CreateTopicSheet } from "@/components";
 import { TopicCard } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
+import { useDecks } from "@/hooks/useDecks";
 import { usePaginatedTopics } from "@/hooks/usePaginatedTopics";
 import { useProfileFriends } from "@/hooks/useProfileFriends";
-import { usePublishedDecks } from "@/hooks/usePublishedDecks";
 import { useStudyReminder } from "@/hooks/useStudyReminder";
 import { signOut } from "@/services/auth";
 
@@ -37,14 +37,14 @@ export default function ProfileScreen() {
 
   const topics = usePaginatedTopics();
   const friends = useProfileFriends();
-  const publishedDecks = usePublishedDecks();
+  const { decks } = useDecks();
   const reminders = useStudyReminder();
 
   const displayName = profile?.display_name ?? "Learner";
 
   const combinedError = useMemo(() => {
-    return topics.error ?? friends.error ?? publishedDecks.error ?? null;
-  }, [friends.error, publishedDecks.error, topics.error]);
+    return topics.error ?? friends.error ?? null;
+  }, [friends.error, topics.error]);
 
   return (
     <Screen
@@ -71,7 +71,7 @@ export default function ProfileScreen() {
         displayName={displayName}
         email={profile?.email}
         friendCount={friends.friendCount}
-        publishedCount={publishedDecks.totalCount}
+        deckCount={decks.length}
         topicCount={topics.topicCount}
       />
 
@@ -139,31 +139,23 @@ export default function ProfileScreen() {
       </View>
 
       <View className="gap-3">
-        <ProfileSectionHeader title="Published decks" />
+        <ProfileSectionHeader
+          title="My decks"
+          actionTitle="See all"
+          onPressAction={() => router.push("/library")}
+        />
 
-        {publishedDecks.loading ? (
-          <LoadingState label="Loading published decks..." center={false} />
-        ) : publishedDecks.items.length === 0 ? (
+        {decks.length === 0 ? (
           <EmptyState
-            title="No published decks"
-            description="Public ready decks you own will appear here."
+            title="No decks yet"
+            description="Create your first deck from the Library tab."
             showIllustration
           />
         ) : (
           <View className="gap-3">
-            {publishedDecks.items.map((deck) => (
+            {decks.slice(0, 5).map((deck) => (
               <DeckCard key={deck.id} deck={deck} href={`/decks/${deck.id}`} />
             ))}
-            {publishedDecks.hasMore ? (
-              <AppButton
-                title={publishedDecks.loadingMore ? "Loading..." : "Load more"}
-                variant="secondary"
-                disabled={publishedDecks.loadingMore}
-                onPress={() => {
-                  void publishedDecks.loadMore();
-                }}
-              />
-            ) : null}
           </View>
         )}
       </View>

@@ -20,7 +20,6 @@ import { getTopic } from "@/services/topics";
 export default function CreateDeckScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [title, setTitle] = useState("");
   const [topicId, setTopicId] = useState<string | null>(null);
   const [sourceText, setSourceText] = useState("");
   const [selectedCoverUri, setSelectedCoverUri] = useState<string | null>(null);
@@ -29,16 +28,12 @@ export default function CreateDeckScreen() {
 
   async function handleSave() {
     if (!user) return;
-    if (!title.trim()) {
-      setError("Deck title is required.");
-      return;
-    }
     if (!topicId) {
       setError("Choose a topic for this deck.");
       return;
     }
-    if (!sourceText.trim()) {
-      setError("Add source notes so AI can generate cards and questions.");
+    if (sourceText.trim().length < 20) {
+      setError("Add at least a short description so AI can generate meaningful content.");
       return;
     }
 
@@ -61,7 +56,7 @@ export default function CreateDeckScreen() {
       const deck = await createDeck({
         owner_id: user.id,
         topic_id: topicId,
-        title: title.trim(),
+        title: "Preparing your deck...",
         description: null,
         cover_image_url: cover?.secureUrl ?? null,
         cover_image_public_id: cover?.publicId ?? null,
@@ -85,12 +80,6 @@ export default function CreateDeckScreen() {
       scroll
     >
       <AppCard className="gap-4">
-        <AppInput
-          label="Deck title"
-          placeholder="HTTP basics"
-          value={title}
-          onChangeText={setTitle}
-        />
         <TopicSelect
           value={topicId}
           onChange={(id) => {
@@ -118,6 +107,9 @@ export default function CreateDeckScreen() {
           onRemove={() => setSelectedCoverUri(null)}
           onError={setError}
         />
+        <AppText variant="caption" className="text-secondary text-center">
+          Memora will generate a title, description, and flashcards from your topic and notes.
+        </AppText>
         {error ? (
           <AppText variant="caption" className="text-danger">
             {error}

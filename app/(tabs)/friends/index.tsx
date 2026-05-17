@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { ScrollView, TouchableOpacity, View } from "react-native";
-import { useRouter } from "expo-router";
+import { View } from "react-native";
 import {
   Cancel01Icon,
   CheckmarkCircle01Icon,
@@ -10,7 +9,6 @@ import {
 
 import {
   AppButton,
-  AppCard,
   AppInput,
   AppText,
   ConfirmDialog,
@@ -21,18 +19,12 @@ import {
   UserItem,
 } from "@/components";
 import { colors } from "@/constants/theme";
-import { useFriendSharedLibrary } from "@/hooks/useFriendSharedLibrary";
 import { useFriendSearch, useFriends } from "@/hooks/useFriends";
 
 export default function FriendsScreen() {
-  const router = useRouter();
   const friends = useFriends();
-  const sharedLibrary = useFriendSharedLibrary();
   const { query, results, loading: searching, search } = useFriendSearch();
 
-  const [activeTab, setActiveTab] = useState<"friend-list" | "shared-library">(
-    "friend-list",
-  );
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState<{
     id: string;
@@ -46,7 +38,6 @@ export default function FriendsScreen() {
     setActionLoading(id);
     try {
       await fn();
-      await sharedLibrary.refresh();
     } finally {
       setActionLoading(null);
     }
@@ -60,30 +51,13 @@ export default function FriendsScreen() {
       header={
         <SectionHeader
           title="Friends"
-          description="Manage your social connections and browse friends' published decks."
+          description="Manage your social connections."
         />
       }
       scroll
       contentClassName="pb-32"
     >
-      <View className="flex-row gap-2 rounded-lg border border-border bg-surface-soft p-1">
-        <AppButton
-          title="Friend list"
-          variant={activeTab === "friend-list" ? "primary" : "ghost"}
-          className="flex-1"
-          onPress={() => setActiveTab("friend-list")}
-        />
-        <AppButton
-          title="Shared library"
-          variant={activeTab === "shared-library" ? "primary" : "ghost"}
-          className="flex-1"
-          onPress={() => setActiveTab("shared-library")}
-        />
-      </View>
-
-      {activeTab === "friend-list" ? (
-        <>
-          <AppInput
+      <AppInput
             placeholder="Search by name or email..."
             value={query}
             onChangeText={search}
@@ -307,98 +281,6 @@ export default function FriendsScreen() {
               ) : null}
             </>
           )}
-        </>
-      ) : (
-        <View className="gap-4">
-          {sharedLibrary.loading ? (
-            <LoadingState label="Loading shared library..." />
-          ) : sharedLibrary.error ? (
-            <AppText variant="caption" className="text-danger">
-              {sharedLibrary.error}
-            </AppText>
-          ) : sharedLibrary.groups.length === 0 ? (
-            <EmptyState
-              title="No friends yet"
-              description="Add friends to browse their published decks."
-              showIllustration
-            />
-          ) : (
-            sharedLibrary.groups.map((group) => (
-              <View
-                key={group.friend.id}
-                className="gap-2 rounded-lg border border-border bg-surface p-3"
-              >
-                <View className="flex-row items-center justify-between">
-                  <View>
-                    <AppText variant="body" className="font-sans-semibold">
-                      {group.friend.display_name ??
-                        group.friend.email ??
-                        "Friend"}
-                    </AppText>
-                    <AppText variant="caption" className="text-text-muted">
-                      {group.friend.email ?? ""}
-                    </AppText>
-                  </View>
-                  <AppText variant="caption" className="text-text-muted">
-                    {group.decks.length} published
-                  </AppText>
-                </View>
-
-                {group.decks.length === 0 ? (
-                  <EmptyState
-                    title="No published decks"
-                    description="This friend has no public ready decks yet."
-                    className="bg-surface-soft"
-                  />
-                ) : (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View className="flex-row gap-3 pr-2">
-                      {group.decks.map((deck) => (
-                        <TouchableOpacity
-                          key={deck.id}
-                          activeOpacity={0.8}
-                          onPress={() => router.push(`/decks/${deck.id}`)}
-                        >
-                          <AppCard className="w-56 gap-2 bg-surface-soft">
-                            <AppText
-                              variant="body"
-                              className="font-sans-semibold"
-                              numberOfLines={1}
-                            >
-                              {deck.title}
-                            </AppText>
-                            <AppText
-                              variant="caption"
-                              className="text-text-muted"
-                              numberOfLines={2}
-                            >
-                              {deck.description ?? "No description yet."}
-                            </AppText>
-                            <View className="flex-row gap-3">
-                              <AppText
-                                variant="caption"
-                                className="text-text-muted"
-                              >
-                                Cards {deck.card_count}
-                              </AppText>
-                              <AppText
-                                variant="caption"
-                                className="text-text-muted"
-                              >
-                                Questions {deck.question_count}
-                              </AppText>
-                            </View>
-                          </AppCard>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </ScrollView>
-                )}
-              </View>
-            ))
-          )}
-        </View>
-      )}
 
       <ConfirmDialog
         visible={pendingRemove !== null}
@@ -415,7 +297,6 @@ export default function FriendsScreen() {
           setRemovingId(pendingRemove.id);
           try {
             await friends.removeFriend(pendingRemove.id);
-            await sharedLibrary.refresh();
             setPendingRemove(null);
           } finally {
             setRemovingId(null);

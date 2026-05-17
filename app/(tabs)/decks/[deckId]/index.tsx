@@ -26,7 +26,7 @@ import {
   SectionHeader,
   StaticFlashcard,
 } from "@/components";
-import { AvatarStack, MetaPill, PastelImageFallback, VisibilityBadge } from "@/components";
+import { AvatarStack, MetaPill, PastelImageFallback } from "@/components";
 import { useDeckCollaborators } from "@/hooks/useDeckCollaborators";
 import { useDeckDetail } from "@/hooks/useDeckDetail";
 import { useDeckGeneration } from "@/hooks/useDeckGeneration";
@@ -378,7 +378,6 @@ export default function DeckDetailScreen() {
 
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1 flex-row flex-wrap items-center gap-2">
-                <VisibilityBadge visibility={deck.visibility} />
                 <MetaPill icon={BookOpen02Icon} label={`${deck.card_count}`} />
                 <MetaPill
                   icon={Quiz02Icon}

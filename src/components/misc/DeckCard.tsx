@@ -12,14 +12,12 @@ import { cn } from "@/lib/cn";
 import type {
   CollaboratorPreviewProfile,
   DeckSummary,
-  PublishedDeckSummary,
 } from "@/services/decks";
 import { AppText } from "@/components/shared";
 import {
   AvatarStack,
   MetaPill,
   PastelImageFallback,
-  VisibilityBadge,
 } from "@/components/decks";
 
 export type DeckCardData = {
@@ -28,7 +26,6 @@ export type DeckCardData = {
   description: string | null;
   cover_image_url: string | null;
   cover_url: string | null;
-  visibility: DeckSummary["visibility"];
   status?: DeckSummary["status"];
   topics?: { name: string } | null;
   card_count: number;
@@ -38,13 +35,13 @@ export type DeckCardData = {
 };
 
 type DeckCardProps = {
-  deck: DeckCardData | DeckSummary | PublishedDeckSummary;
+  deck: DeckCardData | DeckSummary;
   href?: string;
   className?: string;
 };
 
 function toDeckCardData(
-  deck: DeckCardData | DeckSummary | PublishedDeckSummary,
+  deck: DeckCardData | DeckSummary,
 ): DeckCardData {
   const withDefaults = deck as Partial<DeckCardData>;
 
@@ -54,7 +51,6 @@ function toDeckCardData(
     description: deck.description ?? null,
     cover_image_url: deck.cover_image_url ?? null,
     cover_url: deck.cover_url ?? null,
-    visibility: deck.visibility,
     status: withDefaults.status,
     topics: deck.topics,
     card_count: deck.card_count,
@@ -135,7 +131,6 @@ export function DeckCard({ deck, href, className }: DeckCardProps) {
             </View>
           ) : null} */}
           <View className="flex-1 flex-row flex-wrap items-center gap-2">
-            {/* <VisibilityBadge visibility={data.visibility} /> */}
             {data.topics?.name ? (
               <MetaPill icon={Tag01Icon} label={`${data.topics.name}`} />
             ) : null}

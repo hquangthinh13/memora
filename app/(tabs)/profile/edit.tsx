@@ -21,7 +21,9 @@ export default function EditProfileScreen() {
   const { user, profile, refreshProfile } = useAuth();
 
   const [displayName, setDisplayName] = useState(profile?.display_name ?? "");
-  const [selectedAvatarUri, setSelectedAvatarUri] = useState<string | null>(null);
+  const [selectedAvatarUri, setSelectedAvatarUri] = useState<string | null>(
+    null,
+  );
   const [avatarRemoved, setAvatarRemoved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export default function EditProfileScreen() {
   // The URI shown in the picker: prefer newly picked local file, then fall
   // back to the saved remote URL (unless the user explicitly removed it).
   const previewUri =
-    selectedAvatarUri ?? (avatarRemoved ? null : profile?.avatar_url ?? null);
+    selectedAvatarUri ?? (avatarRemoved ? null : (profile?.avatar_url ?? null));
 
   async function handleSave() {
     if (!user) return;
@@ -90,7 +92,11 @@ export default function EditProfileScreen() {
     <Screen
       scroll
       header={
-        <SectionHeader variant="detail" title="Edit profile" />
+        <SectionHeader
+          variant="detail"
+          title="Edit profile"
+          backHref="/profile"
+        />
       }
     >
       {/* Avatar picker — centred above the form card */}

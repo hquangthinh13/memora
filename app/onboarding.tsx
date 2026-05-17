@@ -19,7 +19,7 @@ export default function OnboardingScreen() {
 
       {/* Illustration */}
       <View className="items-center">
-        <View className="h-64 w-64 items-center justify-center rounded-3xl bg-mint-soft">
+        <View className="h-64 w-64 items-center justify-center rounded-lg bg-mint-soft">
           <Image
             source={Images.floral01}
             style={{ width: 210, height: 210 }}
@@ -47,3 +47,4 @@ export default function OnboardingScreen() {
     </Screen>
   );
 }
+

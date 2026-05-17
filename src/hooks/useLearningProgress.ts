@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
 
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -68,6 +69,12 @@ export function useLearningProgress() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   const todayDate = (() => {
     const d = new Date();

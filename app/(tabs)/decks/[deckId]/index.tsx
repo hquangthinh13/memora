@@ -1,43 +1,53 @@
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Image, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Image, PanResponder, Pressable, View } from "react-native";
+import {
+  Add01Icon,
+  BookOpen02Icon,
+  Cancel01Icon,
+  Delete01Icon,
+  Edit01Icon,
+  MoreHorizontalIcon,
+  Quiz02Icon,
+  UserAdd01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+
 import {
   AppButton,
   AppCard,
   AppText,
+  ConfirmDialog,
+  DraggableBottomSheet,
   EmptyState,
   NavLink,
   Screen,
-  DraggableBottomSheet,
-  StaticFlashcard,
   SectionHeader,
-  ConfirmDialog,
-  UserItem,
+  StaticFlashcard,
 } from "@/components";
+import { AvatarStack } from "@/components";
+import { MetaPill } from "@/components";
+import { PastelImageFallback } from "@/components";
+import { VisibilityBadge } from "@/components";
 import { useDeckCollaborators } from "@/hooks/useDeckCollaborators";
-import { useDeckGeneration } from "@/hooks/useDeckGeneration";
 import { useDeckDetail } from "@/hooks/useDeckDetail";
+import { useDeckGeneration } from "@/hooks/useDeckGeneration";
 import { useFriends } from "@/hooks/useFriends";
 import { useQuestions } from "@/hooks/useQuestions";
 import { getErrorMessage } from "@/lib/errors";
-import { deleteDeckWithCoverImage } from "@/services/decks";
 import { leaveDeck, type CollaboratorRole } from "@/services/deckCollaborators";
-import {
-  Add01Icon,
-  Cancel01Icon,
-  Delete01Icon,
-  Edit01Icon,
-  UserAdd01Icon,
-  MoreHorizontalIcon,
-  BookOpen02Icon,
-  Quiz02Icon,
-} from "@hugeicons/core-free-icons";
+import { deleteDeckWithCoverImage } from "@/services/decks";
+
+const STACK_VISIBLE_COUNT = 3;
+const SWIPE_THRESHOLD = 80;
+
 export default function DeckDetailScreen() {
   const router = useRouter();
   const { deckId, generate } = useLocalSearchParams<{
     deckId: string;
     generate?: string;
   }>();
+
   const [pendingDelete, setPendingDelete] = useState(false);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
@@ -45,22 +55,145 @@ export default function DeckDetailScreen() {
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [leaving, setLeaving] = useState(false);
+
+  const [queue, setQueue] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>([]);
+
+  const [activeCollaboratorId, setActiveCollaboratorId] = useState<
+    string | null
+  >(null);
+  const [collaboratorActionOpen, setCollaboratorActionOpen] = useState(false);
+  const [pendingCollaboratorRemoveId, setPendingCollaboratorRemoveId] =
+    useState<string | null>(null);
+  const [mutatingCollaborator, setMutatingCollaborator] = useState(false);
+
   const { deck, loading, error, refresh } = useDeckDetail(deckId);
   const questions = useQuestions(deckId);
   const generation = useDeckGeneration(deckId);
   const collaborators = useDeckCollaborators(deckId);
   const { friends } = useFriends();
+
   const generationStarted = useRef(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
+
+  const topCardTranslate = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const randomRotationMap = useRef<Map<string, number>>(new Map());
+
   const coverUrl = deck?.cover_image_url ?? deck?.cover_url;
   const canEditCards =
     deck?.permission === "owner" || deck?.permission === "editor";
   const canManageDeck = deck?.permission === "owner";
   const isReady = deck?.status === "Ready";
   const isPreparing = deck?.status === "Preparing" || generation.generating;
+
+  const acceptedCollaborators = collaborators.collaborators.filter(
+    (item) => item.status === "accepted",
+  );
+  const acceptedNonOwnerCollaborators = acceptedCollaborators.filter(
+    (item) => item.role !== "owner",
+  );
+
+  const topCardId = queue[0] ?? null;
+  const topCard = topCardId
+    ? (deck?.cards.find((card) => card.id === topCardId) ?? null)
+    : null;
+  const activeCollaborator =
+    acceptedCollaborators.find((item) => item.id === activeCollaboratorId) ??
+    null;
+
+  const currentCardIndex = useMemo(() => {
+    if (!deck?.cards.length || !topCardId) return 0;
+    const idx = deck.cards.findIndex((card) => card.id === topCardId);
+    return idx < 0 ? 0 : idx;
+  }, [deck?.cards, topCardId]);
+
+  const stackedCards = useMemo(() => {
+    if (!deck?.cards.length || !queue.length) return [];
+
+    return queue
+      .slice(0, STACK_VISIBLE_COUNT)
+      .map((id) => deck.cards.find((card) => card.id === id))
+      .filter(Boolean) as NonNullable<typeof topCard>[];
+  }, [deck?.cards, queue]);
+
+  function getStableRotation(cardId: string) {
+    const existing = randomRotationMap.current.get(cardId);
+    if (typeof existing === "number") return existing;
+
+    const value = Math.random() * 8 - 4;
+    randomRotationMap.current.set(cardId, value);
+    return value;
+  }
+
+  function advanceTopCard() {
+    setQueue((prevQueue) => {
+      if (prevQueue.length <= 1) return prevQueue;
+
+      const [first, ...rest] = prevQueue;
+      setHistory((prevHistory) => [...prevHistory, first]);
+      return [...rest, first];
+    });
+  }
+
+  function undoTopCard() {
+    setHistory((prevHistory) => {
+      if (!prevHistory.length) return prevHistory;
+
+      const previousTop = prevHistory[prevHistory.length - 1];
+      setQueue((prevQueue) => {
+        const withoutPrevious = prevQueue.filter((id) => id !== previousTop);
+        return [previousTop, ...withoutPrevious];
+      });
+
+      return prevHistory.slice(0, -1);
+    });
+  }
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5,
+        onPanResponderMove: (_, gesture) => {
+          topCardTranslate.setValue({ x: gesture.dx, y: gesture.dy * 0.2 });
+        },
+        onPanResponderRelease: (_, gesture) => {
+          if (gesture.dx <= -SWIPE_THRESHOLD) {
+            Animated.timing(topCardTranslate, {
+              toValue: { x: -220, y: 20 },
+              duration: 140,
+              useNativeDriver: false,
+            }).start(() => {
+              topCardTranslate.setValue({ x: 0, y: 0 });
+              advanceTopCard();
+            });
+            return;
+          }
+
+          if (gesture.dx >= SWIPE_THRESHOLD) {
+            Animated.timing(topCardTranslate, {
+              toValue: { x: 220, y: 20 },
+              duration: 140,
+              useNativeDriver: false,
+            }).start(() => {
+              topCardTranslate.setValue({ x: 0, y: 0 });
+              undoTopCard();
+            });
+            return;
+          }
+
+          Animated.spring(topCardTranslate, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: false,
+          }).start();
+        },
+      }),
+    [topCardTranslate],
+  );
 
   useEffect(() => {
     if (generate !== "1" || !deckId || generationStarted.current) return;
@@ -74,6 +207,12 @@ export default function DeckDetailScreen() {
         void questions.refresh();
       });
   }, [deckId, generate, generation, questions, refresh]);
+
+  useEffect(() => {
+    const ids = (deck?.cards ?? []).map((card) => card.id);
+    setQueue(ids);
+    setHistory([]);
+  }, [deck?.cards]);
 
   async function handleDeleteDeck() {
     if (!deck) return;
@@ -119,6 +258,7 @@ export default function DeckDetailScreen() {
       (c) => c.status === "accepted" && deck?.permission !== "owner",
     );
     if (!myEntry) return;
+
     setLeaving(true);
     try {
       await leaveDeck(myEntry.id);
@@ -128,7 +268,31 @@ export default function DeckDetailScreen() {
     }
   }
 
-  // IDs of users already invited or collaborating on this deck
+  async function handleChangeCollaboratorRole(role: CollaboratorRole) {
+    if (!activeCollaborator || activeCollaborator.role === "owner") return;
+
+    setMutatingCollaborator(true);
+    try {
+      await collaborators.changeRole(activeCollaborator.id, role);
+      setCollaboratorActionOpen(false);
+      setActiveCollaboratorId(null);
+    } finally {
+      setMutatingCollaborator(false);
+    }
+  }
+
+  async function handleRemoveCollaborator(collaboratorId: string) {
+    setMutatingCollaborator(true);
+    try {
+      await collaborators.removeCollaborator(collaboratorId);
+      setPendingCollaboratorRemoveId(null);
+      setCollaboratorActionOpen(false);
+      setActiveCollaboratorId(null);
+    } finally {
+      setMutatingCollaborator(false);
+    }
+  }
+
   const alreadyInvitedIds = new Set(
     collaborators.collaborators.map((c) => c.user_id),
   );
@@ -183,41 +347,26 @@ export default function DeckDetailScreen() {
 
       {deck ? (
         <>
-          {coverUrl ? (
-            <Image
-              source={{ uri: coverUrl }}
-              className="h-56 w-full rounded-lg bg-surface-soft"
-            />
-          ) : (
-            <View className="h-56 w-full items-center justify-center rounded-lg border border-border bg-pink-soft">
-              <AppText variant="title">
-                {deck.title.slice(0, 1).toUpperCase()}
-              </AppText>
-            </View>
-          )}
+          <AppCard className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm p-0">
+            {coverUrl ? (
+              <Image
+                source={{ uri: coverUrl }}
+                className="h-56 w-full bg-surface-soft"
+              />
+            ) : (
+              <PastelImageFallback title={deck.title} className="h-56" />
+            )}
 
-          <View className="gap-2">
-            <AppText variant="title">{deck.title}</AppText>
-            <AppText variant="body" className="text-text-muted">
-              {deck.description ?? "No description yet."}
-            </AppText>
-
-            <AppText variant="caption">
-              {deck.card_count} cards -{" "}
-              {questions.questions.length || deck.question_count} questions
-            </AppText>
-
-            <View className="flex-row flex-wrap items-center gap-2 mt-3">
-              <View className="rounded-sm border border-border bg-yellow-soft px-3 py-1">
-                <AppText
-                  variant="caption"
-                  className="font-sans-semibold text-text"
-                >
-                  {deck.status}
+            <View className="gap-3 p-card">
+              <View className="gap-1">
+                <AppText variant="title">{deck.title}</AppText>
+                <AppText variant="body" className="text-text-muted">
+                  {deck.description ?? "No description yet."}
                 </AppText>
               </View>
+
               {deck.topics?.name ? (
-                <View className="rounded-sm border border-lavender bg-lavender-soft px-3 py-1">
+                <View className="self-start rounded-full bg-mint-soft px-3 py-1">
                   <AppText
                     variant="caption"
                     className="font-sans-medium text-text"
@@ -226,13 +375,47 @@ export default function DeckDetailScreen() {
                   </AppText>
                 </View>
               ) : null}
+
+              <View className="flex-row items-center justify-between gap-3">
+                <View className="flex-1 flex-row flex-wrap items-center gap-2">
+                  <VisibilityBadge visibility={deck.visibility} />
+                  <MetaPill
+                    icon={BookOpen02Icon}
+                    label={`${deck.card_count}`}
+                  />
+                  <MetaPill
+                    icon={Quiz02Icon}
+                    label={`${questions.questions.length || deck.question_count}`}
+                  />
+                  <MetaPill
+                    icon={UserGroupIcon}
+                    label={`${acceptedCollaborators.length}`}
+                  />
+                </View>
+                <AvatarStack
+                  collaborators={acceptedNonOwnerCollaborators.map(
+                    (item) => item.profile,
+                  )}
+                  maxVisible={2}
+                />
+              </View>
+
+              <View className="rounded-full border border-border bg-surface-soft px-3 py-1 self-start">
+                <AppText
+                  variant="caption"
+                  className="font-sans-semibold text-text"
+                >
+                  {deck.status}
+                </AppText>
+              </View>
+
+              {deck.generation_error ? (
+                <AppText variant="caption" className="text-danger">
+                  {deck.generation_error}
+                </AppText>
+              ) : null}
             </View>
-            {deck.generation_error ? (
-              <AppText variant="caption" className="text-danger text-center">
-                {deck.generation_error}
-              </AppText>
-            ) : null}
-          </View>
+          </AppCard>
 
           <View className="flex-row flex-wrap gap-3">
             <View className="min-w-[46%] flex-1">
@@ -288,6 +471,77 @@ export default function DeckDetailScreen() {
             ) : null}
           </View>
 
+          {canManageDeck || acceptedCollaborators.length > 0 ? (
+            <View className="gap-3">
+              <AppText variant="subtitle">Collaborators</AppText>
+              {collaborators.loading ? (
+                <AppText
+                  variant="caption"
+                  className="text-center text-text-muted"
+                >
+                  Loading...
+                </AppText>
+              ) : acceptedCollaborators.length === 0 ? (
+                <EmptyState
+                  title="No collaborators"
+                  description="Invite friends to view or edit this deck."
+                />
+              ) : (
+                acceptedCollaborators.map((c) => (
+                  <AppCard key={c.id} className="rounded-lg">
+                    <View className="flex-row items-center gap-3">
+                      {c.profile?.avatar_url ? (
+                        <Image
+                          source={{ uri: c.profile.avatar_url }}
+                          className="size-12 rounded-lg bg-surface-soft"
+                        />
+                      ) : (
+                        <View className="size-12 items-center justify-center rounded-lg bg-lavender-soft">
+                          <AppText variant="subtitle">
+                            {(
+                              c.profile?.display_name ??
+                              c.profile?.email ??
+                              "U"
+                            )
+                              .slice(0, 1)
+                              .toUpperCase()}
+                          </AppText>
+                        </View>
+                      )}
+                      <View className="flex-1 gap-0.5">
+                        <AppText
+                          variant="body"
+                          className="font-sans-semibold"
+                          numberOfLines={1}
+                        >
+                          {c.profile?.display_name ??
+                            c.profile?.email ??
+                            "User"}
+                        </AppText>
+                        <MetaPill
+                          icon={UserGroupIcon}
+                          label={`${c.role} � ${c.status}`}
+                        />
+                      </View>
+                      {canManageDeck && c.role !== "owner" ? (
+                        <AppButton
+                          layout="icon-only"
+                          icon={MoreHorizontalIcon}
+                          variant="ghost"
+                          className="h-10 w-10 min-h-10 rounded-full"
+                          onPress={() => {
+                            setActiveCollaboratorId(c.id);
+                            setCollaboratorActionOpen(true);
+                          }}
+                        />
+                      ) : null}
+                    </View>
+                  </AppCard>
+                ))
+              )}
+            </View>
+          ) : null}
+
           <View className="gap-3">
             <AppText variant="subtitle">Cards</AppText>
             {isPreparing ? (
@@ -296,16 +550,94 @@ export default function DeckDetailScreen() {
                 description="AI is creating cards and questions for this deck."
               />
             ) : null}
-            {deck.cards.length ? (
-              deck.cards.map((card) => (
-                <StaticFlashcard
-                  key={card.id}
-                  front={card.front ?? "Untitled card"}
-                  back={card.back ?? "No definition yet."}
-                  explanation={card.explanation}
-                  tags={card.tags}
-                />
-              ))
+
+            {topCard ? (
+              <>
+                <View className="h-[380px] w-full items-center justify-center">
+                  {stackedCards
+                    .slice()
+                    .reverse()
+                    .map((card, layerIndex, reversedArray) => {
+                      const realIndex = reversedArray.length - 1 - layerIndex;
+                      const isTop = realIndex === 0;
+                      const rotation = getStableRotation(card.id);
+
+                      const baseScale = 1 - realIndex * 0.04;
+                      const baseTranslateY = realIndex * 12;
+                      const baseOpacity = 1 - realIndex * 0.16;
+
+                      const animatedStyle = isTop
+                        ? {
+                            transform: [
+                              { translateX: topCardTranslate.x },
+                              {
+                                translateY: Animated.add(
+                                  topCardTranslate.y,
+                                  new Animated.Value(baseTranslateY),
+                                ),
+                              },
+                              {
+                                rotate: topCardTranslate.x.interpolate({
+                                  inputRange: [-160, 0, 160],
+                                  outputRange: [
+                                    `${rotation - 8}deg`,
+                                    `${rotation}deg`,
+                                    `${rotation + 8}deg`,
+                                  ],
+                                  extrapolate: "clamp",
+                                }),
+                              },
+                              { scale: baseScale },
+                            ],
+                            opacity: baseOpacity,
+                            zIndex: 30,
+                          }
+                        : {
+                            transform: [
+                              { translateY: baseTranslateY },
+                              { rotate: `${rotation}deg` },
+                              { scale: baseScale },
+                            ],
+                            opacity: baseOpacity,
+                            zIndex: 30 - realIndex,
+                          };
+
+                      return (
+                        <Animated.View
+                          key={card.id}
+                          style={[
+                            {
+                              position: "absolute",
+                              width: "100%",
+                            },
+                            animatedStyle,
+                          ]}
+                          {...(isTop ? panResponder.panHandlers : {})}
+                        >
+                          <Pressable
+                            onPress={() => {
+                              if (!isTop) return;
+                              advanceTopCard();
+                            }}
+                          >
+                            <StaticFlashcard
+                              front={card.front ?? "Untitled card"}
+                              back={card.back ?? "No definition yet."}
+                              explanation={card.explanation}
+                              tags={card.tags}
+                            />
+                          </Pressable>
+                        </Animated.View>
+                      );
+                    })}
+                </View>
+                <AppText
+                  variant="caption"
+                  className="text-center text-text-muted"
+                >
+                  {currentCardIndex + 1} / {deck.cards.length}
+                </AppText>
+              </>
             ) : !isPreparing ? (
               <EmptyState
                 title="No cards yet"
@@ -314,51 +646,13 @@ export default function DeckDetailScreen() {
             ) : null}
           </View>
 
-          {/* Collaborators section */}
-          {(canManageDeck || collaborators.collaborators.length > 0) ? (
-            <View className="gap-3">
-              <AppText variant="subtitle">Collaborators</AppText>
-              {collaborators.loading ? (
-                <AppText variant="caption" className="text-center text-text-muted">
-                  Loading...
-                </AppText>
-              ) : collaborators.collaborators.length === 0 ? (
-                <EmptyState
-                  title="No collaborators"
-                  description="Invite friends to view or edit this deck."
-                />
-              ) : (
-                collaborators.collaborators.map((c) => (
-                  <UserItem
-                    key={c.id}
-                    name={c.profile?.display_name ?? c.profile?.email ?? "User"}
-                    subtitle={`${c.role} · ${c.status}`}
-                    avatarUrl={c.profile?.avatar_url}
-                    action={
-                      canManageDeck ? (
-                        <AppButton
-                          layout="icon-only"
-                          icon={Cancel01Icon}
-                          variant="ghost"
-                          className="h-10 w-10 min-h-10 rounded-full"
-                          onPress={() => void collaborators.removeCollaborator(c.id)}
-                        />
-                      ) : null
-                    }
-                  />
-                ))
-              )}
-            </View>
-          ) : null}
-
-          {/* Leave deck (non-owner collaborator) */}
           {!canManageDeck && deck.permission !== "owner" ? (
             <AppButton
               title="Leave deck"
               variant="destructive"
               icon={Cancel01Icon}
               layout="icon-leading"
-              className="justify-start rounded-2xl bg-surface px-4"
+              className="justify-start rounded-lg bg-surface px-4"
               onPress={() => setLeaveConfirm(true)}
             />
           ) : null}
@@ -378,7 +672,7 @@ export default function DeckDetailScreen() {
                 icon={Add01Icon}
                 layout="icon-leading"
                 variant="ghost"
-                className="justify-start rounded-2xl bg-surface px-4"
+                className="justify-start rounded-lg bg-surface px-4"
                 onPress={() => {
                   setActionSheetOpen(false);
                   router.push(`/cards/edit?deckId=${deck.id}`);
@@ -393,7 +687,7 @@ export default function DeckDetailScreen() {
                   icon={Edit01Icon}
                   layout="icon-leading"
                   variant="ghost"
-                  className="justify-start rounded-2xl bg-surface px-4"
+                  className="justify-start rounded-lg bg-surface px-4"
                   onPress={() => {
                     setActionSheetOpen(false);
                     router.push(`/decks/${deck.id}/edit`);
@@ -405,7 +699,7 @@ export default function DeckDetailScreen() {
                   icon={UserAdd01Icon}
                   layout="icon-leading"
                   variant="ghost"
-                  className="justify-start rounded-2xl bg-surface px-4"
+                  className="justify-start rounded-lg bg-surface px-4"
                   onPress={() => {
                     setActionSheetOpen(false);
                     setInviteSheetOpen(true);
@@ -419,7 +713,7 @@ export default function DeckDetailScreen() {
                   icon={Delete01Icon}
                   layout="icon-leading"
                   variant="destructive"
-                  className="justify-start rounded-2xl bg-surface px-4"
+                  className="justify-start rounded-lg bg-surface px-4"
                   disabled={deleting}
                   onPress={() => {
                     setActionSheetOpen(false);
@@ -431,6 +725,7 @@ export default function DeckDetailScreen() {
           </View>
         ) : null}
       </DraggableBottomSheet>
+
       <ConfirmDialog
         visible={pendingDelete}
         title="Delete deck?"
@@ -459,13 +754,28 @@ export default function DeckDetailScreen() {
         onConfirm={() => void handleLeaveDeck()}
       />
 
+      <ConfirmDialog
+        visible={Boolean(pendingCollaboratorRemoveId)}
+        title="Remove collaborator?"
+        description="This collaborator will lose access to this deck."
+        confirmTitle="Remove"
+        loadingTitle="Removing..."
+        loading={mutatingCollaborator}
+        onCancel={() => {
+          if (!mutatingCollaborator) setPendingCollaboratorRemoveId(null);
+        }}
+        onConfirm={() => {
+          if (!pendingCollaboratorRemoveId) return;
+          void handleRemoveCollaborator(pendingCollaboratorRemoveId);
+        }}
+      />
+
       <DraggableBottomSheet
         visible={inviteSheetOpen}
         title="Invite a friend"
         onClose={() => setInviteSheetOpen(false)}
       >
         <View className="gap-4">
-          {/* Role picker */}
           <View className="flex-row gap-2">
             <View className="flex-1">
               <AppButton
@@ -483,7 +793,6 @@ export default function DeckDetailScreen() {
             </View>
           </View>
 
-          {/* Friends list */}
           {friends.length === 0 ? (
             <EmptyState
               title="No friends yet"
@@ -495,13 +804,42 @@ export default function DeckDetailScreen() {
                 const alreadyIn = alreadyInvitedIds.has(f.friend.id);
                 const isInviting = invitingId === f.friend.id;
                 return (
-                  <UserItem
-                    key={f.id}
-                    name={f.friend.display_name ?? f.friend.email ?? "Friend"}
-                    subtitle={f.friend.email ?? undefined}
-                    avatarUrl={f.friend.avatar_url}
-                    action={
-                      alreadyIn ? (
+                  <AppCard key={f.id} className="rounded-lg">
+                    <View className="flex-row items-center gap-3">
+                      {f.friend.avatar_url ? (
+                        <Image
+                          source={{ uri: f.friend.avatar_url }}
+                          className="size-10 rounded-lg bg-surface-soft"
+                        />
+                      ) : (
+                        <View className="size-10 items-center justify-center rounded-lg bg-lavender-soft">
+                          <AppText
+                            variant="caption"
+                            className="font-sans-semibold"
+                          >
+                            {(f.friend.display_name ?? f.friend.email ?? "F")
+                              .slice(0, 1)
+                              .toUpperCase()}
+                          </AppText>
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <AppText
+                          variant="body"
+                          className="font-sans-semibold"
+                          numberOfLines={1}
+                        >
+                          {f.friend.display_name ?? f.friend.email ?? "Friend"}
+                        </AppText>
+                        <AppText
+                          variant="caption"
+                          className="text-text-muted"
+                          numberOfLines={1}
+                        >
+                          {f.friend.email ?? ""}
+                        </AppText>
+                      </View>
+                      {alreadyIn ? (
                         <View className="rounded-full bg-mint-soft px-3 py-1">
                           <AppText variant="caption">Invited</AppText>
                         </View>
@@ -515,14 +853,66 @@ export default function DeckDetailScreen() {
                           disabled={isInviting}
                           onPress={() => void handleInvite(f.friend.id)}
                         />
-                      )
-                    }
-                  />
+                      )}
+                    </View>
+                  </AppCard>
                 );
               })}
             </View>
           )}
         </View>
+      </DraggableBottomSheet>
+
+      <DraggableBottomSheet
+        visible={collaboratorActionOpen}
+        title="Collaborator actions"
+        onClose={() => {
+          if (mutatingCollaborator) return;
+          setCollaboratorActionOpen(false);
+          setActiveCollaboratorId(null);
+        }}
+      >
+        {activeCollaborator ? (
+          <View className="gap-2">
+            {activeCollaborator.role !== "viewer" ? (
+              <AppButton
+                title="Change permission to Viewer"
+                icon={Edit01Icon}
+                layout="icon-leading"
+                variant="ghost"
+                className="justify-start rounded-lg bg-surface px-4"
+                disabled={mutatingCollaborator}
+                onPress={() => void handleChangeCollaboratorRole("viewer")}
+              />
+            ) : null}
+
+            {activeCollaborator.role !== "editor" ? (
+              <AppButton
+                title="Change permission to Editor"
+                icon={Edit01Icon}
+                layout="icon-leading"
+                variant="ghost"
+                className="justify-start rounded-lg bg-surface px-4"
+                disabled={mutatingCollaborator}
+                onPress={() => void handleChangeCollaboratorRole("editor")}
+              />
+            ) : null}
+
+            <View className="h-px bg-border" />
+
+            <AppButton
+              title="Remove collaborator"
+              icon={Cancel01Icon}
+              layout="icon-leading"
+              variant="destructive"
+              className="justify-start rounded-lg bg-surface px-4"
+              disabled={mutatingCollaborator}
+              onPress={() =>
+                setPendingCollaboratorRemoveId(activeCollaborator.id)
+              }
+            />
+          </View>
+        ) : null}
       </DraggableBottomSheet>
     </Screen>
   );

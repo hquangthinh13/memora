@@ -2,20 +2,18 @@ import { Image, TouchableOpacity, View } from "react-native";
 import { Link } from "expo-router";
 
 import {
-  AppButton,
   AppText,
   DeckCard,
   EmptyState,
   LearningDashboard,
   NavLink,
   Screen,
+  SectionHeader,
 } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { useLearningProgress } from "@/hooks/useLearningProgress";
-import { signOut } from "@/services/auth";
-import { Logout01Icon } from "@hugeicons/core-free-icons";
-
+import { AddIcon, PlayIcon } from "@hugeicons/core-free-icons";
 export default function HomeScreen() {
   const { profile } = useAuth();
   const progress = useLearningProgress();
@@ -27,51 +25,30 @@ export default function HomeScreen() {
   return (
     <Screen
       header={
-        <View className="flex-row items-center justify-between">
+        <SectionHeader
+          title={`Hello, ${displayName}`}
+          description="What would you like to remember today?"
+        >
           <Link href="/profile" asChild>
-            <TouchableOpacity className="flex-row items-center gap-3 active:opacity-80">
+            <TouchableOpacity className="flex-row items-center gap-2 active:opacity-80">
               {profile?.avatar_url ? (
                 <Image
                   source={{ uri: profile.avatar_url }}
-                  className="size-12 rounded-full bg-surface-soft"
+                  className="size-10 rounded-full bg-surface-soft"
                 />
               ) : (
-                <View className="size-12 items-center justify-center rounded-full bg-mint">
-                  <AppText variant="subtitle">
+                <View className="size-10 items-center justify-center rounded-full bg-mint">
+                  <AppText variant="caption" className="font-sans-semibold">
                     {displayName.slice(0, 1).toUpperCase()}
                   </AppText>
                 </View>
               )}
-              <View>
-                <AppText variant="caption">Welcome back</AppText>
-                <AppText variant="body" className="font-sans-semibold">
-                  {displayName}
-                </AppText>
-              </View>
             </TouchableOpacity>
           </Link>
-
-          <AppButton
-            title="Log out"
-            variant="destructive"
-            icon={Logout01Icon}
-            layout="icon-only"
-            onPress={async () => {
-              try {
-                await signOut();
-              } catch (err) {
-                console.error("Logout failed:", err);
-              }
-            }}
-          />
-        </View>
+        </SectionHeader>
       }
       scroll
     >
-      <AppText variant="title" className="text-4xl">
-        What would you like to remember today?
-      </AppText>
-
       {error ? (
         <AppText variant="caption" className="text-danger">
           {error}
@@ -94,12 +71,19 @@ export default function HomeScreen() {
                 ? `/study?deckId=${firstDeck.id}`
                 : "/library"
             }
+            layout="icon-leading"
+            icon={PlayIcon}
             title="Continue"
             variant="primary"
           />
         </View>
         <View className="flex-1">
-          <NavLink href="/decks/new" title="Create a deck" />
+          <NavLink
+            href="/decks/new"
+            title="Create a deck"
+            layout="icon-leading"
+            icon={AddIcon}
+          />
         </View>
       </View>
 
@@ -114,18 +98,14 @@ export default function HomeScreen() {
         </View>
         {recentDecks.length ? (
           recentDecks.map((deck) => (
-            <DeckCard
-              key={deck.id}
-              deck={deck}
-              href={`/decks/${deck.id}`}
-              compact={false}
-            />
+            <DeckCard key={deck.id} deck={deck} href={`/decks/${deck.id}`} />
           ))
         ) : (
           <EmptyState
             title="No decks yet"
             description="Create a deck and it will appear here."
             className="bg-surface-soft"
+            showIllustration
           />
         )}
       </View>

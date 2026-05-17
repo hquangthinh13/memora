@@ -47,21 +47,36 @@ export default function QuizScreen() {
   }, [quiz.done, quiz.total, quiz.score, quiz.wrongCount, user]);
   const latestResult = quiz.results.at(-1);
 
-  const correctAnswer = Array.isArray(latestResult?.question.correct_answer)
+  const correctAnswerText = Array.isArray(latestResult?.question.correct_answer)
     ? latestResult?.question.correct_answer.join(", ")
-    : latestResult?.question.correct_answer;
+    : String(latestResult?.question.correct_answer ?? "");
+  const selectedAnswerText = String(quiz.selectedAnswer ?? "");
 
   const resultTitle = latestResult?.timedOut
     ? "Time's up"
     : latestResult?.correct
       ? "Correct"
       : "Incorrect";
-
-  const resultDescription = latestResult?.timedOut
-    ? `You ran out of time.\n\nCorrect answer: ${correctAnswer}`
+  const resultTone = latestResult?.timedOut
+    ? {
+        cardClassName: "bg-yellow-soft border-peach",
+        titleClassName: "text-peach",
+        badgeClassName: "bg-surface/70",
+        badgeText: "Timed out",
+      }
     : latestResult?.correct
-      ? `Your answer: ${quiz.selectedAnswer}`
-      : `Your answer: ${quiz.selectedAnswer}\n\nCorrect answer: ${correctAnswer}`;
+      ? {
+          cardClassName: "bg-mint-soft border-mint",
+          titleClassName: "text-mint",
+          badgeClassName: "bg-surface/70",
+          badgeText: "Correct answer",
+        }
+      : {
+          cardClassName: "bg-pink-soft border-danger/40",
+          titleClassName: "text-danger",
+          badgeClassName: "bg-surface/70",
+          badgeText: "Needs review",
+        };
   return (
     <Screen
       scroll
@@ -125,7 +140,7 @@ export default function QuizScreen() {
           />
 
           {/* {quiz.selectedAnswer ? (
-            <AppCard className="gap-3 rounded-3xl bg-surface-soft">
+            <AppCard className="gap-3 rounded-lg bg-surface-soft">
               <AppText variant="body" className="font-sans-semibold">
                 {quiz.results[quiz.results.length - 1]?.timedOut
                   ? "Time's up"
@@ -139,12 +154,12 @@ export default function QuizScreen() {
               </AppText>
 
               <View className="flex-row gap-2">
-                <View className="flex-1 rounded-2xl bg-mint-soft px-4 py-3">
+                <View className="flex-1 rounded-lg bg-mint-soft px-4 py-3">
                   <AppText variant="caption">Correct</AppText>
                   <AppText variant="subtitle">{quiz.score}</AppText>
                 </View>
 
-                <View className="flex-1 rounded-2xl bg-pink-soft px-4 py-3">
+                <View className="flex-1 rounded-lg bg-pink-soft px-4 py-3">
                   <AppText variant="caption">Wrong</AppText>
                   <AppText variant="subtitle">{quiz.wrongCount}</AppText>
                 </View>
@@ -161,16 +176,51 @@ export default function QuizScreen() {
           <ConfirmDialog
             visible={Boolean(quiz.selectedAnswer && latestResult)}
             title={resultTitle}
-            description={resultDescription}
+            cardClassName={resultTone.cardClassName}
+            titleClassName={resultTone.titleClassName}
             confirmTitle={
               quiz.index + 1 >= quiz.total ? "See result" : "Next question"
             }
             hideCancel
             onCancel={quiz.next}
             onConfirm={quiz.next}
+            children={
+              <View className="gap-2">
+                <View className={`self-start rounded-full px-3 py-1 ${resultTone.badgeClassName}`}>
+                  <AppText variant="caption" className="font-sans-semibold text-text">
+                    {resultTone.badgeText}
+                  </AppText>
+                </View>
+
+                {latestResult?.timedOut ? (
+                  <>
+                    <AppText variant="caption" className="text-text-muted">
+                      You ran out of time.
+                    </AppText>
+                    <AppText variant="caption" className="font-sans-semibold text-text">
+                      Correct answer: {correctAnswerText}
+                    </AppText>
+                  </>
+                ) : latestResult?.correct ? (
+                  <AppText variant="caption" className="text-text-muted">
+                    Your answer: {selectedAnswerText}
+                  </AppText>
+                ) : (
+                  <>
+                    <AppText variant="caption" className="text-text-muted">
+                      Your answer: {selectedAnswerText}
+                    </AppText>
+                    <AppText variant="caption" className="font-sans-semibold text-text">
+                      Correct answer: {correctAnswerText}
+                    </AppText>
+                  </>
+                )}
+              </View>
+            }
           />
         </View>
       ) : null}
     </Screen>
   );
 }
+

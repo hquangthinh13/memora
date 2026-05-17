@@ -311,6 +311,40 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["deck_collaborators"]["Insert"]>;
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type:
+            | "friend_request"
+            | "friend_request_accepted"
+            | "deck_processing_completed"
+            | "deck_invitation"
+            | "deck_invitation_accepted";
+          title: string;
+          message: string | null;
+          metadata: Json | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type:
+            | "friend_request"
+            | "friend_request_accepted"
+            | "deck_processing_completed"
+            | "deck_invitation"
+            | "deck_invitation_accepted";
+          title: string;
+          message?: string | null;
+          metadata?: Json | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+        Relationships: [];
+      };
       friendships: {
         Row: {
           id: string;

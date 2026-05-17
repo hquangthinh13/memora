@@ -3,8 +3,8 @@ import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Home07Icon,
+  Notification03Icon,
   UserIcon,
-  LibraryIcon,
   BookOpen01Icon,
   UserGroup02Icon,
 } from "@hugeicons/core-free-icons";
@@ -12,9 +12,9 @@ import { HugeiconsIcon, HugeiconsProps } from "@hugeicons/react-native";
 
 import { colors, components } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
-import { useDeckInvites } from "@/hooks/useDeckInvites";
-import { useFriends } from "@/hooks/useFriends";
+import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/cn";
+import { useOverlayState } from "@/providers/OverlayProvider";
 import { needsPasswordSetup } from "@/services/auth";
 
 const tabs = [
@@ -32,6 +32,11 @@ const tabs = [
     name: "friends/index",
     title: "Friends",
     icons: UserGroup02Icon,
+  },
+  {
+    name: "notifications/index",
+    title: "Notifications",
+    icons: Notification03Icon,
   },
   {
     name: "profile/index",
@@ -84,9 +89,8 @@ const TabsIcon = ({
 const TabsLayout = () => {
   const insets = useSafeAreaInsets();
   const { loading, session, user } = useAuth();
-  const { pendingCount: friendRequests } = useFriends();
-  const { pendingCount: deckInvites } = useDeckInvites();
-  const totalPending = friendRequests + deckInvites;
+  const { unreadCount } = useNotifications();
+  const { hasActiveOverlay } = useOverlayState();
 
   if (loading) {
     return null;
@@ -107,6 +111,7 @@ const TabsLayout = () => {
         tabBarShowLabel: true,
         tabBarLabelPosition: "below-icon",
         tabBarStyle: {
+          display: hasActiveOverlay ? "none" : "flex",
           position: "absolute",
           height: components.tabBar.height + insets.bottom + 16,
           backgroundColor: colors.surface,
@@ -126,7 +131,7 @@ const TabsLayout = () => {
       }}
     >
       {tabs.map((tab) => {
-        const isFriendsTab = tab.name === "friends/index";
+        const isNotificationsTab = tab.name === "notifications/index";
         return (
           <Tabs.Screen
             key={tab.name}
@@ -136,13 +141,13 @@ const TabsLayout = () => {
               tabBarIcon: ({ focused }) => (
                 <View>
                   <TabsIcon focused={focused} icon={tab.icons} />
-                  {isFriendsTab && totalPending > 0 ? (
+                  {isNotificationsTab && unreadCount > 0 ? (
                     <View
                       className="absolute right-1 top-1 min-w-5 items-center justify-center rounded-full bg-peach px-1"
                       style={{ height: 18 }}
                     >
                       <Text className="font-sans-semibold text-xs text-text">
-                        {totalPending > 99 ? "99+" : totalPending}
+                        {unreadCount > 99 ? "99+" : unreadCount}
                       </Text>
                     </View>
                   ) : null}

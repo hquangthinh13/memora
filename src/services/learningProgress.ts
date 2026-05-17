@@ -61,8 +61,50 @@ export async function getWeeklyActivity(
   return data ?? [];
 }
 
-export async function recordCardStudy(userId: string): Promise<void> {
+export async function recordCardStudy({
+  userId,
+  cardId,
+}: {
+  userId: string;
+  cardId: string;
+}): Promise<void> {
   const today = localDateString();
+  const nowIso = new Date().toISOString();
+  const now = new Date();
+
+  const { data: existingProgress, error: progressError } = await supabase
+    .from("study_progress")
+    .select("last_reviewed_at")
+    .eq("user_id", userId)
+    .eq("card_id", cardId)
+    .maybeSingle();
+
+  if (progressError) throw progressError;
+
+  const alreadyCountedToday = (() => {
+    if (!existingProgress?.last_reviewed_at) return false;
+    const reviewed = new Date(existingProgress.last_reviewed_at);
+    return (
+      reviewed.getFullYear() === now.getFullYear() &&
+      reviewed.getMonth() === now.getMonth() &&
+      reviewed.getDate() === now.getDate()
+    );
+  })();
+
+  const { error: progressUpsertError } = await supabase
+    .from("study_progress")
+    .upsert(
+      {
+        user_id: userId,
+        card_id: cardId,
+        last_reviewed_at: nowIso,
+      },
+      { onConflict: "user_id,card_id" },
+    );
+
+  if (progressUpsertError) throw progressUpsertError;
+
+  if (alreadyCountedToday) return;
 
   const { data: existing } = await supabase
     .from("user_learning_stats")

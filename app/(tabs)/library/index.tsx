@@ -3,7 +3,6 @@ import { View } from "react-native";
 import { AddIcon } from "@hugeicons/core-free-icons";
 
 import {
-  AppCard,
   AppText,
   DeckCard,
   EmptyState,
@@ -12,10 +11,10 @@ import {
   SectionHeader,
 } from "@/components";
 import { useDecks } from "@/hooks/useDecks";
-import type { Deck, DeckCollaborator } from "@/services/decks";
+import type { DeckCollaborator, DeckSummary } from "@/services/decks";
 import { listCollaborativeDecks } from "@/services/decks";
 
-type CollabEntry = DeckCollaborator & { decks: Deck | null };
+type CollabEntry = DeckCollaborator & { decks: DeckSummary | null };
 
 function useCollaborativeDecks() {
   const [entries, setEntries] = useState<CollabEntry[]>([]);
@@ -80,6 +79,7 @@ export default function LibraryScreen() {
         <EmptyState
           title="No decks yet"
           description="Create your first deck or save a public deck to start building your library."
+          showIllustration
         />
       ) : null}
 
@@ -91,34 +91,7 @@ export default function LibraryScreen() {
             const deck = entry.decks;
             if (!deck) return null;
             return (
-              <AppCard
-                key={entry.id}
-                className="flex-row items-center gap-3"
-              >
-                <View className="size-12 items-center justify-center rounded-lg bg-lavender-soft">
-                  <AppText variant="subtitle">
-                    {deck.title.slice(0, 1).toUpperCase()}
-                  </AppText>
-                </View>
-                <View className="flex-1 gap-0.5">
-                  <AppText
-                    variant="body"
-                    className="font-sans-semibold"
-                    numberOfLines={1}
-                  >
-                    {deck.title}
-                  </AppText>
-                  <AppText variant="caption" className="text-text-muted capitalize">
-                    {entry.role}
-                  </AppText>
-                </View>
-                <NavLink
-                  href={`/decks/${deck.id}`}
-                  title="Open"
-                  variant="secondary"
-                  className="h-9 min-h-9 rounded-full px-3"
-                />
-              </AppCard>
+              <DeckCard key={entry.id} deck={deck} href={`/decks/${deck.id}`} />
             );
           })}
         </View>

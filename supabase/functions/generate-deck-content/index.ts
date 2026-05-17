@@ -537,6 +537,17 @@ Deno.serve(async (request) => {
       .update({ status: "Ready", generation_error: null })
       .eq("id", deckId);
 
+    await adminClient.from("notifications").insert({
+      user_id: deck.owner_id,
+      type: "deck_processing_completed",
+      title: "Deck is ready",
+      message: `Your deck "${deck.title}" is ready to study.`,
+      metadata: {
+        deck_id: deckId,
+        status: "Ready",
+      },
+    });
+
     return jsonResponse({
       success: true,
       cards: generated.cards.length,
@@ -547,6 +558,18 @@ Deno.serve(async (request) => {
     console.error(error);
 
     if (adminClient && deckId) {
+      let deckOwnerId: string | null = null;
+      let deckTitle: string | null = null;
+
+      const { data: deckInfo } = await adminClient
+        .from("decks")
+        .select("owner_id, title")
+        .eq("id", deckId)
+        .maybeSingle();
+
+      deckOwnerId = deckInfo?.owner_id ?? null;
+      deckTitle = deckInfo?.title ?? null;
+
       await adminClient
         .from("decks")
         .update({
@@ -555,6 +578,21 @@ Deno.serve(async (request) => {
             error instanceof Error ? error.message : "Could not generate deck content.",
         })
         .eq("id", deckId);
+
+      if (deckOwnerId) {
+        await adminClient.from("notifications").insert({
+          user_id: deckOwnerId,
+          type: "deck_processing_completed",
+          title: "Deck processing failed",
+          message: `We could not finish processing "${deckTitle ?? "your deck"}".`,
+          metadata: {
+            deck_id: deckId,
+            status: "Failed",
+            generation_error:
+              error instanceof Error ? error.message : "Could not generate deck content.",
+          },
+        });
+      }
     }
 
     return jsonResponse(

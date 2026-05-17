@@ -56,7 +56,7 @@ export default function SetupPasswordScreen() {
     <Screen scroll>
       {/* Illustration */}
       <View className="items-center py-2">
-        <View className="h-44 w-44 items-center justify-center rounded-3xl bg-yellow-soft">
+        <View className="h-44 w-44 items-center justify-center rounded-lg bg-yellow-soft">
           <Image
             source={Images.floral01}
             style={{ width: 130, height: 130 }}
@@ -104,3 +104,4 @@ export default function SetupPasswordScreen() {
     </Screen>
   );
 }
+

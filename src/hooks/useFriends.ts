@@ -5,6 +5,7 @@ import {
   acceptFriendRequest,
   cancelFriendRequest,
   listFriends,
+  listFriendsWithProgress,
   listIncomingRequests,
   listOutgoingRequests,
   rejectFriendRequest,
@@ -12,12 +13,13 @@ import {
   searchUsers,
   sendFriendRequest,
   type FriendWithProfile,
+  type FriendWithProgress,
   type UserProfile,
 } from "@/services/friends";
 
 export function useFriends() {
   const { user } = useAuth();
-  const [friends, setFriends] = useState<FriendWithProfile[]>([]);
+  const [friends, setFriends] = useState<FriendWithProgress[]>([]);
   const [incoming, setIncoming] = useState<FriendWithProfile[]>([]);
   const [outgoing, setOutgoing] = useState<FriendWithProfile[]>([]);
   const [loading, setLoading] = useState(Boolean(user));
@@ -29,7 +31,7 @@ export function useFriends() {
     setError(null);
     try {
       const [f, inc, out] = await Promise.all([
-        listFriends(),
+        listFriendsWithProgress(),
         listIncomingRequests(),
         listOutgoingRequests(),
       ]);
@@ -82,6 +84,7 @@ export function useFriends() {
 }
 
 export function useFriendSearch() {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -94,11 +97,14 @@ export function useFriendSearch() {
     }
     setLoading(true);
     try {
-      setResults(await searchUsers(q));
+      const nextResults = await searchUsers(q);
+      setResults(
+        user ? nextResults.filter((profile) => profile.id !== user.id) : nextResults,
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   return { query, results, loading, search };
 }

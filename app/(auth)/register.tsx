@@ -63,7 +63,7 @@ export default function RegisterScreen() {
     >
       {/* Illustration */}
       <View className="items-center py-2">
-        <View className="h-44 w-44 items-center justify-center rounded-3xl bg-mint-soft">
+        <View className="h-44 w-44 items-center justify-center rounded-lg bg-mint-soft">
           <Image
             source={Images.floral01}
             style={{ width: 130, height: 130 }}
@@ -114,3 +114,4 @@ export default function RegisterScreen() {
     </Screen>
   );
 }
+

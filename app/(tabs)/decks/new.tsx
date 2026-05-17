@@ -1,17 +1,26 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
-import { AppButton, AppCard, AppInput, AppText, DeckCoverPicker, Screen, TopicSelect } from "@/components";
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  AppText,
+  DeckCoverPicker,
+  Screen,
+  TopicSelect,
+  SectionHeader,
+} from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import { getErrorMessage } from "@/lib/errors";
 import { uploadImageToCloudinary } from "@/services/cloudinary";
 import { createDeck } from "@/services/decks";
+import { getTopic } from "@/services/topics";
 
 export default function CreateDeckScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [topicId, setTopicId] = useState<string | null>(null);
   const [sourceText, setSourceText] = useState("");
   const [selectedCoverUri, setSelectedCoverUri] = useState<string | null>(null);
@@ -37,6 +46,12 @@ export default function CreateDeckScreen() {
     setError(null);
 
     try {
+      const topic = await getTopic(topicId);
+      if (!topic || topic.user_id !== user.id) {
+        setError("Choose a topic from your own profile before generating this deck.");
+        return;
+      }
+
       const cover = selectedCoverUri
         ? await uploadImageToCloudinary({
             localUri: selectedCoverUri,
@@ -47,7 +62,7 @@ export default function CreateDeckScreen() {
         owner_id: user.id,
         topic_id: topicId,
         title: title.trim(),
-        description: description.trim() || null,
+        description: null,
         cover_image_url: cover?.secureUrl ?? null,
         cover_image_public_id: cover?.publicId ?? null,
         source_type: "text",
@@ -65,15 +80,17 @@ export default function CreateDeckScreen() {
   }
 
   return (
-    <Screen scroll>
-      <AppText variant="title">Create deck</AppText>
-      <AppText variant="body" className="text-text-muted">
-        Add source notes and let AI prepare cards and quiz questions.
-      </AppText>
-
+    <Screen
+      header={<SectionHeader title="Create new deck"></SectionHeader>}
+      scroll
+    >
       <AppCard className="gap-4">
-        <AppInput label="Deck title" placeholder="HTTP basics" value={title} onChangeText={setTitle} />
-        <AppInput label="Description" placeholder="Short context for learners" value={description} onChangeText={setDescription} />
+        <AppInput
+          label="Deck title"
+          placeholder="HTTP basics"
+          value={title}
+          onChangeText={setTitle}
+        />
         <TopicSelect
           value={topicId}
           onChange={(id) => {
@@ -101,7 +118,11 @@ export default function CreateDeckScreen() {
           onRemove={() => setSelectedCoverUri(null)}
           onError={setError}
         />
-        {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
+        {error ? (
+          <AppText variant="caption" className="text-danger">
+            {error}
+          </AppText>
+        ) : null}
         <AppButton
           title={submitting ? "Preparing deck..." : "Generate deck"}
           variant="primary"

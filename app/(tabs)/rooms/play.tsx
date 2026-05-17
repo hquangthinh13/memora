@@ -1,7 +1,14 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 
-import { AppButton, AppCard, AppText, PlaceholderList, Screen } from "@/components";
+import {
+  AppButton,
+  AppCard,
+  AppText,
+  LoadingState,
+  PlaceholderList,
+  Screen,
+} from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoom } from "@/hooks/useRoom";
 import { getErrorMessage } from "@/lib/errors";
@@ -78,7 +85,7 @@ export default function RoomPlayScreen() {
   return (
     <Screen scroll>
       <AppText variant="title">Room play</AppText>
-      {room.loading ? <AppText variant="caption">Loading room...</AppText> : null}
+      {room.loading ? <LoadingState label="Loading room..." center={false} /> : null}
       {room.error ? <AppText variant="caption" className="text-danger">{room.error}</AppText> : null}
       {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
 

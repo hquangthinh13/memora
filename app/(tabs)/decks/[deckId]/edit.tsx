@@ -1,10 +1,23 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
-import { AppButton, AppCard, AppInput, AppText, DeckCoverPicker, Screen, TopicSelect } from "@/components";
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  AppText,
+  DeckCoverPicker,
+  LoadingState,
+  Screen,
+  TopicSelect,
+  SectionHeader,
+} from "@/components";
 import { useDeckDetail } from "@/hooks/useDeckDetail";
 import { getErrorMessage } from "@/lib/errors";
-import { safelyDeleteCloudinaryImage, uploadImageToCloudinary } from "@/services/cloudinary";
+import {
+  safelyDeleteCloudinaryImage,
+  uploadImageToCloudinary,
+} from "@/services/cloudinary";
 
 export default function EditDeckScreen() {
   const router = useRouter();
@@ -85,18 +98,39 @@ export default function EditDeckScreen() {
   }
 
   return (
-    <Screen scroll>
-      <AppText variant="title">Edit deck</AppText>
-      <AppText variant="body" className="text-text-muted">
-        Update this deck&apos;s basic details.
-      </AppText>
-
-      {loading ? <AppText variant="caption">Loading deck...</AppText> : null}
-      {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
+    <Screen
+      scroll
+      header={
+        <SectionHeader
+          variant="detail"
+          title="Edit deck"
+          description="Update this deck's basic details."
+          backHref={`/decks/${deckId}`}
+        />
+      }
+    >
+      {loading ? (
+        <LoadingState label="Loading deck..." />
+      ) : null}
+      {error ? (
+        <AppText variant="caption" className="text-danger">
+          {error}
+        </AppText>
+      ) : null}
 
       <AppCard className="gap-4">
-        <AppInput label="Deck title" placeholder="Travel phrases" value={title} onChangeText={setTitle} />
-        <AppInput label="Description" placeholder="Everyday phrases for trips" value={description} onChangeText={setDescription} />
+        <AppInput
+          label="Deck title"
+          placeholder="Travel phrases"
+          value={title}
+          onChangeText={setTitle}
+        />
+        <AppInput
+          label="Description"
+          placeholder="Everyday phrases for trips"
+          value={description}
+          onChangeText={setDescription}
+        />
         <TopicSelect
           value={topicId}
           onChange={(id) => {
@@ -106,7 +140,10 @@ export default function EditDeckScreen() {
           disabled={submitting}
         />
         <DeckCoverPicker
-          imageUri={selectedCoverUri ?? (coverRemoved ? null : deck?.cover_image_url ?? deck?.cover_url)}
+          imageUri={
+            selectedCoverUri ??
+            (coverRemoved ? null : (deck?.cover_image_url ?? deck?.cover_url))
+          }
           disabled={submitting}
           onChange={(uri) => {
             setSubmitError(null);
@@ -120,8 +157,16 @@ export default function EditDeckScreen() {
           }}
           onError={setSubmitError}
         />
-        {submitError ? <AppText variant="caption" className="text-danger">{submitError}</AppText> : null}
-        {warning ? <AppText variant="caption" className="text-danger">{warning}</AppText> : null}
+        {submitError ? (
+          <AppText variant="caption" className="text-danger">
+            {submitError}
+          </AppText>
+        ) : null}
+        {warning ? (
+          <AppText variant="caption" className="text-danger">
+            {warning}
+          </AppText>
+        ) : null}
         <AppButton
           title={submitting ? "Saving changes..." : "Save changes"}
           variant="primary"

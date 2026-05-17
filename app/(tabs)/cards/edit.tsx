@@ -1,7 +1,14 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 
-import { AppButton, AppCard, AppInput, AppText, Screen } from "@/components";
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  AppText,
+  Screen,
+  SectionHeader,
+} from "@/components";
 import { createCanonicalCard } from "@/services/cards";
 
 export default function EditCardScreen() {
@@ -36,22 +43,39 @@ export default function EditCardScreen() {
       });
       router.replace(`/decks/${deckId}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not save card.");
+      setError(
+        caught instanceof Error ? caught.message : "Could not save card.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Screen scroll>
-      <AppText variant="title">Create card</AppText>
-      <AppText variant="body" className="text-text-muted">
-        Add the prompt, answer, and explanation.
-      </AppText>
-
+    <Screen
+      scroll
+      header={
+        <SectionHeader
+          variant="detail"
+          title="Create deck"
+          description="Add the question, answer, and explanation."
+          backHref={`/decks/${deckId}`}
+        />
+      }
+    >
       <AppCard className="gap-4">
-        <AppInput label="Front" placeholder="What does HTTP 404 mean?" value={front} onChangeText={setFront} />
-        <AppInput label="Back" placeholder="Resource not found" value={back} onChangeText={setBack} />
+        <AppInput
+          label="Front"
+          placeholder="What does HTTP 404 mean?"
+          value={front}
+          onChangeText={setFront}
+        />
+        <AppInput
+          label="Back"
+          placeholder="Resource not found"
+          value={back}
+          onChangeText={setBack}
+        />
         <AppInput
           label="Explanation"
           placeholder="HTTP 404 means the server could not find the requested resource."
@@ -61,7 +85,11 @@ export default function EditCardScreen() {
           inputClassName="min-h-28 py-3"
           textAlignVertical="top"
         />
-        {error ? <AppText variant="caption" className="text-danger">{error}</AppText> : null}
+        {error ? (
+          <AppText variant="caption" className="text-danger">
+            {error}
+          </AppText>
+        ) : null}
         <AppButton
           title={submitting ? "Saving..." : "Save card"}
           variant="primary"

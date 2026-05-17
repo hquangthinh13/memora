@@ -18,11 +18,13 @@ type GeneratedQuestion = {
   question: string;
   correct_answer: string | string[];
   wrong_answers: string[];
+  hint: string;
   difficulty: number;
   time_limit: number;
 };
 
 type GeneratedDeckContent = {
+  description: string;
   cards: GeneratedCard[];
   questions: GeneratedQuestion[];
 };
@@ -52,54 +54,104 @@ function getOptionalEnv(name: string, fallback: string) {
   return Deno.env.get(name) || fallback;
 }
 
-function asNonEmptyString(value: unknown, field: string) {
+function asNonEmptyString(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`Generated ${field} must be a non-empty string.`);
   }
-
   return value.trim();
 }
 
-function asDifficulty(value: unknown) {
-  if (!Number.isInteger(value) || value < 1 || value > 5) {
+function asDifficulty(value: unknown): number {
+  if (!Number.isInteger(value) || (value as number) < 1 || (value as number) > 5) {
     throw new Error("Generated difficulty must be an integer from 1 to 5.");
   }
-
-  return value;
+  return value as number;
 }
 
-function asTags(value: unknown) {
+function asTags(value: unknown): string[] {
   if (!Array.isArray(value)) {
     throw new Error("Generated card tags must be an array.");
   }
-
   return value
     .map((tag) => asNonEmptyString(tag, "tag").toLowerCase())
     .filter((tag, index, tags) => tags.indexOf(tag) === index)
     .slice(0, 8);
 }
 
-function asCorrectAnswer(value: unknown) {
+function asCorrectAnswer(value: unknown): string | string[] {
   if (typeof value === "string") return asNonEmptyString(value, "correct_answer");
-
   if (Array.isArray(value)) {
-    const answers = value.map((answer) => asNonEmptyString(answer, "correct_answer"));
+    const answers = value.map((a) => asNonEmptyString(a, "correct_answer"));
     if (!answers.length) throw new Error("Generated correct_answer array cannot be empty.");
     return answers;
   }
-
   throw new Error("Generated correct_answer must be a string or string array.");
 }
 
-function parseJsonContent(content: string) {
+function parseJsonContent(content: string): unknown {
   const trimmed = content.trim();
   const withoutFence = trimmed
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
-
   return JSON.parse(withoutFence);
+}
+
+function getDefaultTimeLimit(type: string): number {
+  switch (type) {
+    case "true_false": return 10;
+    case "mcq": return 15;
+    case "fill_in_the_blank": return 20;
+    case "short_answer": return 20;
+    default: return 15;
+  }
+}
+
+// Normalize common AI type alias mistakes
+function normalizeType(raw: string): string {
+  const lower = raw.toLowerCase().trim();
+  if (lower === "mcp" || lower === "multiple_choice" || lower === "multiple-choice") return "mcq";
+  return lower;
+}
+
+// Convert booleans and casing variants to "True" / "False"
+function normalizeTrueFalseAnswer(value: unknown): "True" | "False" | null {
+  if (value === true || value === "true" || value === "True" || value === "TRUE" || value === "T" || value === "yes") return "True";
+  if (value === false || value === "false" || value === "False" || value === "FALSE" || value === "F" || value === "no") return "False";
+  return null;
+}
+
+function getQuestionDiversityIssue(questions: GeneratedQuestion[]): string | null {
+  if (questions.length < 4) return null;
+
+  const requiredTypes = ["mcq", "true_false", "fill_in_the_blank", "short_answer"] as const;
+  const counts = new Map<string, number>();
+
+  for (const question of questions) {
+    counts.set(question.type, (counts.get(question.type) ?? 0) + 1);
+  }
+
+  const missing = requiredTypes.filter((type) => !counts.has(type));
+  if (missing.length) {
+    return `AI response must include ${missing.join(", ")} questions.`;
+  }
+
+  const maxAllowed = Math.ceil(questions.length * 0.6);
+  const dominant = [...counts.entries()].find(([, count]) => count > maxAllowed);
+  if (dominant) {
+    return `AI response is too heavily weighted toward ${dominant[0]} questions.`;
+  }
+
+  return null;
+}
+
+function answerTextValues(value: string | string[]): string[] {
+  return Array.isArray(value) ? value : [value];
+}
+
+function hasShortAnswerShape(value: string): boolean {
+  return value.trim().split(/\s+/).filter(Boolean).length <= 5;
 }
 
 function validateGeneratedContent(value: unknown): GeneratedDeckContent {
@@ -107,111 +159,274 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
     throw new Error("AI response must be a JSON object.");
   }
 
-  const cardsInput = value.cards;
-  const questionsInput = value.questions;
+  const obj = value as Record<string, unknown>;
+  const description = asNonEmptyString(obj.description, "description").slice(0, 280);
+  const cardsInput = obj.cards;
+  const questionsInput = obj.questions;
 
   if (!Array.isArray(cardsInput) || cardsInput.length < 1 || cardsInput.length > 30) {
     throw new Error("AI response must include 1 to 30 cards.");
   }
-
   if (!Array.isArray(questionsInput) || questionsInput.length < 1 || questionsInput.length > 20) {
     throw new Error("AI response must include 1 to 20 questions.");
   }
 
-  const cards = cardsInput.map((card) => ({
-    front: asNonEmptyString(card?.front, "card.front"),
-    back: asNonEmptyString(card?.back, "card.back"),
-    explanation: asNonEmptyString(card?.explanation, "card.explanation"),
-    difficulty: asDifficulty(card?.difficulty),
-    tags: asTags(card?.tags),
-  }));
-
-  const questions = questionsInput.map((question) => {
-    const type = asNonEmptyString(question?.type, "question.type");
-
-    if (!["mcq", "fill_in_the_blank", "true_false", "short_answer"].includes(type)) {
-      throw new Error(`Unsupported generated question type: ${type}.`);
-    }
-
-    const wrongAnswers = Array.isArray(question?.wrong_answers)
-      ? question.wrong_answers.map((answer) => asNonEmptyString(answer, "wrong_answer"))
-      : [];
-
-    if (type === "mcq" && wrongAnswers.length !== 3) {
-      throw new Error("Generated MCQ questions must include exactly 3 wrong answers.");
-    }
-
+  const cards = cardsInput.map((card: unknown) => {
+    const c = card as Record<string, unknown>;
     return {
-      type,
-      question: asNonEmptyString(question?.question, "question.question"),
-      correct_answer: asCorrectAnswer(question?.correct_answer),
-      wrong_answers: wrongAnswers,
-      difficulty: asDifficulty(question?.difficulty),
-      time_limit: Number.isInteger(question?.time_limit) && question.time_limit > 0
-        ? question.time_limit
-        : 15,
+      front: asNonEmptyString(c?.front, "card.front"),
+      back: asNonEmptyString(c?.back, "card.back"),
+      explanation: asNonEmptyString(c?.explanation, "card.explanation"),
+      difficulty: asDifficulty(c?.difficulty),
+      tags: asTags(c?.tags),
     };
   });
 
-  return { cards, questions };
+  const VALID_TYPES = ["mcq", "fill_in_the_blank", "true_false", "short_answer"] as const;
+
+  const questions = questionsInput.map((question: unknown, i: number) => {
+    const q = question as Record<string, unknown>;
+
+    const rawType = asNonEmptyString(q?.type, `question[${i}].type`);
+    const type = normalizeType(rawType);
+
+    if (!VALID_TYPES.includes(type as typeof VALID_TYPES[number])) {
+      throw new Error(`Unsupported question type: "${type}" (question ${i + 1}).`);
+    }
+
+    const questionText = asNonEmptyString(q?.question, `question[${i}].question`);
+    const hint = asNonEmptyString(q?.hint, `question[${i}].hint`);
+    const difficulty = asDifficulty(q?.difficulty);
+
+    // Time limit: use type-appropriate default, clamp to 5–90 s
+    const rawTL = q?.time_limit;
+    const defaultTL = getDefaultTimeLimit(type);
+    const time_limit = (Number.isInteger(rawTL) && (rawTL as number) > 0)
+      ? Math.max(5, Math.min(90, rawTL as number))
+      : defaultTL;
+
+    let correct_answer: string | string[];
+    let wrong_answers: string[];
+
+    if (type === "true_false") {
+      const normalized = normalizeTrueFalseAnswer(q?.correct_answer);
+      if (!normalized) {
+        throw new Error(
+          `true_false correct_answer must be "True" or "False" (question ${i + 1}, got: ${JSON.stringify(q?.correct_answer)}).`,
+        );
+      }
+      correct_answer = normalized;
+      // Auto-fill the opposite value regardless of what AI sent
+      wrong_answers = [normalized === "True" ? "False" : "True"];
+
+    } else if (type === "mcq") {
+      if (typeof q?.correct_answer !== "string" || !q.correct_answer.trim()) {
+        throw new Error(`MCQ correct_answer must be a non-empty string (question ${i + 1}).`);
+      }
+      correct_answer = (q.correct_answer as string).trim();
+      const correctNorm = correct_answer.toLowerCase();
+
+      const rawWrong = Array.isArray(q?.wrong_answers)
+        ? (q.wrong_answers as unknown[]).map((w) => asNonEmptyString(w, "wrong_answer"))
+        : [];
+
+      // Dedup; exclude anything that matches the correct answer
+      const seen = new Set<string>();
+      wrong_answers = [];
+      for (const w of rawWrong) {
+        const key = w.toLowerCase();
+        if (key !== correctNorm && !seen.has(key)) {
+          seen.add(key);
+          wrong_answers.push(w);
+        }
+      }
+
+      if (wrong_answers.length !== 3) {
+        throw new Error(
+          `MCQ must have exactly 3 distinct wrong answers (question ${i + 1}, found ${wrong_answers.length}).`,
+        );
+      }
+
+    } else {
+      if (!/_{2,}/.test(questionText)) {
+        throw new Error(
+          `${type} question must contain "____" as a blank marker (question ${i + 1}).`,
+        );
+      }
+      correct_answer = asCorrectAnswer(q?.correct_answer);
+      if (type === "short_answer" && !answerTextValues(correct_answer).every(hasShortAnswerShape)) {
+        throw new Error(`short_answer correct answers must be short, usually 1 to 5 words (question ${i + 1}).`);
+      }
+      wrong_answers = [];
+    }
+
+    return {
+      type: type as typeof VALID_TYPES[number],
+      question: questionText,
+      correct_answer,
+      wrong_answers,
+      hint,
+      difficulty,
+      time_limit,
+    };
+  });
+
+  return { description, cards, questions };
 }
 
-function buildPrompt(deck: { title: string; description: string | null; source_text: string }) {
+function buildPrompt(
+  deck: { title: string; source_text: string },
+  isRetry = false,
+): string {
   const sourceLength = deck.source_text.length;
   const cardTarget = sourceLength > 5000 ? "20 to 30" : sourceLength > 1500 ? "12 to 20" : "10 to 14";
   const questionTarget = sourceLength > 5000 ? "12 to 20" : sourceLength > 1500 ? "8 to 14" : "5 to 8";
 
-  return `
-Generate learning content for a mobile study deck.
+  let diversityRule: string;
+  if (sourceLength <= 1500) {
+    diversityRule = `- Generate ${questionTarget} questions.
+- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
+- Use at least 1 question of each supported type.
+- No single type should make up more than 60% of the total.`;
+  } else if (sourceLength <= 5000) {
+    diversityRule = `- Generate ${questionTarget} questions.
+- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
+- Aim for: MCQ ~30%, true_false ~25%, fill_in_the_blank ~25%, short_answer ~20%.
+- No single type should exceed 60% of the total.`;
+  } else {
+    diversityRule = `- Generate ${questionTarget} questions.
+- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
+- Aim for a balanced distribution across the four types.
+- No single type should exceed 60% of the total.`;
+  }
 
+  const retryWarning = isRetry
+    ? `\nCRITICAL: Your previous attempt did not include enough question type diversity.
+You MUST include mcq, true_false, fill_in_the_blank, and short_answer questions.
+Outputting mostly or only MCQ will cause this generation to fail entirely.\n`
+    : "";
+
+  return `You are a quiz content generator for a mobile study app.
+${retryWarning}
 Deck title: ${deck.title}
-Deck description: ${deck.description ?? "None"}
 
 Source material:
 ${deck.source_text}
 
-Return JSON only with this exact shape:
+Return ONLY a valid JSON object - no markdown, no code fences, no extra text.
+
+JSON shape:
 {
+  "description": "A short, learner-friendly summary of what this deck teaches.",
   "cards": [
     {
-      "front": "Question or prompt",
-      "back": "Short answer",
-      "explanation": "Clear explanation",
-      "difficulty": 1,
-      "tags": ["lowercase-tag"]
+      "front": "Short question or prompt",
+      "back": "Concise answer",
+      "explanation": "Why this answer is correct",
+      "difficulty": 2,
+      "tags": ["tag1", "tag2"]
     }
   ],
   "questions": [
     {
       "type": "mcq",
-      "question": "Question text",
-      "correct_answer": "Answer text or array of accepted answers",
-      "wrong_answers": ["Wrong 1", "Wrong 2", "Wrong 3"],
+      "question": "Which organelle is the powerhouse of the cell?",
+      "correct_answer": "Mitochondria",
+      "wrong_answers": ["Nucleus", "Ribosome", "Golgi apparatus"],
+      "hint": "Think of the organelle that makes energy for the cell.",
+      "difficulty": 1,
+      "time_limit": 15
+    },
+    {
+      "type": "true_false",
+      "question": "DNA is stored in the nucleus of eukaryotic cells.",
+      "correct_answer": "True",
+      "wrong_answers": ["False"],
+      "hint": "Focus on where genetic material is kept in eukaryotic cells.",
       "difficulty": 1,
       "time_limit": 10
+    },
+    {
+      "type": "fill_in_the_blank",
+      "question": "The ____ is responsible for producing ATP in the cell.",
+      "correct_answer": ["mitochondria", "mitochondrion"],
+      "wrong_answers": [],
+      "hint": "This is the cell's energy-producing organelle.",
+      "difficulty": 2,
+      "time_limit": 20
+    },
+    {
+      "type": "short_answer",
+      "question": "DNA replication creates two ____ DNA strands.",
+      "correct_answer": ["identical", "matching"],
+      "wrong_answers": [],
+      "hint": "The new strands should match each other.",
+      "difficulty": 2,
+      "time_limit": 20
     }
   ]
 }
 
-Rules:
-- Generate ${cardTarget} flashcards and ${questionTarget} quiz questions.
-- Cards must be atomic and useful.
-- Keep front/back concise.
-- Explanations must be clear.
-- Difficulty must be an integer from 1 to 5.
-- Tags must be lowercase strings.
-- Question type must be one of: mcq, fill_in_the_blank, true_false, short_answer.
-- Use "mcq", never "mcp".
-- MCQ questions must have exactly 3 plausible wrong answers.
-- correct_answer may be a string or an array of strings.
-- Do not duplicate cards or questions.
-- Do not use markdown in JSON values unless necessary.
-`.trim();
-}
+RULES:
 
-async function generateWithGroq(deck: { title: string; description: string | null; source_text: string }) {
+1. DESCRIPTION - Generate a concise deck description.
+   - 1-2 sentences, max 280 characters.
+   - Explain what the learner will practice.
+   - Do not mention "source notes" or sound like marketing copy.
+
+2. CARDS - Generate ${cardTarget} flashcards.
+   - front: short question or term.
+   - back: concise answer.
+   - explanation: 1-2 clear sentences.
+   - difficulty: integer 1-5.
+   - tags: lowercase strings, max 8.
+
+3. QUESTION DIVERSITY
+${diversityRule}
+
+4. QUESTION FORMAT (follow exactly for each type):
+
+   mcq
+   - Concept recognition or comparison.
+   - correct_answer: single string.
+   - wrong_answers: exactly 3 plausible but wrong options (no duplicates, none equal correct_answer).
+   - hint: one short clue, not the answer.
+   - time_limit: 15.
+
+   true_false
+   - A factual statement (not a question) that is clearly true or false.
+   - correct_answer: must be exactly "True" or "False" (capital T or F, string).
+   - wrong_answers: ["False"] if correct is True, else ["True"].
+   - hint: one short clue, not the answer.
+   - time_limit: 10.
+
+   fill_in_the_blank
+   - A sentence with a key term replaced by ____ (exactly four underscores).
+   - The question string MUST contain ____.
+   - correct_answer: array of accepted answers/synonyms.
+   - wrong_answers: [] (empty).
+   - hint: one short clue, not the answer.
+   - time_limit: 20.
+
+   short_answer
+   - Cloze-style short recall only; it must contain ____ like fill_in_the_blank.
+   - correct_answer: string or array of accepted short answers, usually 1 to 5 words.
+   - wrong_answers: [] (empty).
+   - hint: one short clue shown above the question, not the answer.
+   - time_limit: 20.
+
+5. Every question must include a non-empty hint.
+6. Spell "mcq" exactly - never "mcp" or "multiple_choice".
+7. No duplicate cards or questions.
+8. Return valid JSON only.`.trim();
+}
+async function generateWithGroq(
+  deck: { title: string; source_text: string },
+  isRetry = false,
+): Promise<GeneratedDeckContent> {
   const apiKey = getRequiredEnv("GROQ_API_KEY");
   const model = getOptionalEnv("GROQ_MODEL", "llama-3.1-8b-instant");
+
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -220,20 +435,22 @@ async function generateWithGroq(deck: { title: string; description: string | nul
     },
     body: JSON.stringify({
       model,
-      temperature: 0.2,
+      temperature: 0.4,
       response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
-          content: "You generate strict JSON study content. Return valid JSON only.",
+          content:
+            "You generate strict JSON study content for a mobile learning app. Return valid JSON only. Never use markdown or code fences.",
         },
         {
           role: "user",
-          content: buildPrompt(deck),
+          content: buildPrompt(deck, isRetry),
         },
       ],
     }),
   });
+
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
@@ -249,7 +466,19 @@ async function generateWithGroq(deck: { title: string; description: string | nul
     throw new Error("Groq response did not include message content.");
   }
 
-  return validateGeneratedContent(parseJsonContent(content));
+  const generated = validateGeneratedContent(parseJsonContent(content));
+
+  const diversityIssue = getQuestionDiversityIssue(generated.questions);
+  if (diversityIssue) {
+    if (!isRetry) {
+      console.warn(`${diversityIssue} Retrying with stronger diversity prompt...`);
+      return generateWithGroq(deck, true);
+    }
+
+    throw new Error(diversityIssue);
+  }
+
+  return generated;
 }
 
 Deno.serve(async (request) => {
@@ -296,7 +525,7 @@ Deno.serve(async (request) => {
 
     const { data: deck, error: deckError } = await adminClient
       .from("decks")
-      .select("id, owner_id, title, description, source_type, source_text")
+      .select("id, owner_id, title, source_type, source_text")
       .eq("id", deckId)
       .maybeSingle();
 
@@ -319,7 +548,6 @@ Deno.serve(async (request) => {
 
     const generated = await generateWithGroq({
       title: deck.title,
-      description: deck.description,
       source_text: deck.source_text.trim(),
     });
 
@@ -349,6 +577,7 @@ Deno.serve(async (request) => {
         question: question.question,
         correct_answer: question.correct_answer,
         wrong_answers: question.wrong_answers,
+        hint: question.hint,
         difficulty: question.difficulty,
         time_limit: question.time_limit,
       })),
@@ -358,29 +587,76 @@ Deno.serve(async (request) => {
 
     await adminClient
       .from("decks")
-      .update({ status: "Ready", generation_error: null })
+      .update({
+        status: "Ready",
+        generation_error: null,
+        description: generated.description,
+      })
       .eq("id", deckId);
+
+    await adminClient.from("notifications").insert({
+      user_id: deck.owner_id,
+      type: "deck_processing_completed",
+      title: "Deck is ready",
+      message: `Your deck "${deck.title}" is ready to study.`,
+      metadata: {
+        deck_id: deckId,
+        status: "Ready",
+      },
+    });
 
     return jsonResponse({
       success: true,
       cards: generated.cards.length,
       questions: generated.questions.length,
+      questionTypes: [...new Set(generated.questions.map((q) => q.type))],
     });
   } catch (error) {
     console.error(error);
 
     if (adminClient && deckId) {
+      let deckOwnerId: string | null = null;
+      let deckTitle: string | null = null;
+
+      const { data: deckInfo } = await adminClient
+        .from("decks")
+        .select("owner_id, title")
+        .eq("id", deckId)
+        .maybeSingle();
+
+      deckOwnerId = deckInfo?.owner_id ?? null;
+      deckTitle = deckInfo?.title ?? null;
+
       await adminClient
         .from("decks")
         .update({
           status: "Failed",
-          generation_error: error instanceof Error ? error.message : "Could not generate deck content.",
+          generation_error:
+            error instanceof Error ? error.message : "Could not generate deck content.",
         })
         .eq("id", deckId);
+
+      if (deckOwnerId) {
+        await adminClient.from("notifications").insert({
+          user_id: deckOwnerId,
+          type: "deck_processing_completed",
+          title: "Deck processing failed",
+          message: `We could not finish processing "${deckTitle ?? "your deck"}".`,
+          metadata: {
+            deck_id: deckId,
+            status: "Failed",
+            generation_error:
+              error instanceof Error ? error.message : "Could not generate deck content.",
+          },
+        });
+      }
     }
 
     return jsonResponse(
-      { error: error instanceof Error ? error.message : "Could not generate deck content." },
+      {
+        error:
+          error instanceof Error ? error.message : "Could not generate deck content.",
+      },
       500,
     );
   }

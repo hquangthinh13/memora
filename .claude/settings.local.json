@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\" -Recurse -Name)",
+      "Bash(Sort-Object)",
+      "PowerShell(head -100)",
+      "Bash(claude mcp *)",
+      "Bash(npx skills *)",
+      "mcp__mcp-registry__list_connectors",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell($env:SUPABASE_ACCESS_TOKEN = \"sbp_a453863731009d4896bd3ae1056da7ba1685afeb\"; cd \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\"; npx supabase db query -f \"supabase\\\\migrations\\\\20260516130000_add_learning_stats_tables.sql\" --linked 2>&1)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\\\\supabase\\\\migrations\" -File)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(npx tsc *)",
+      "Bash(npx supabase *)"
+    ]
+  }
+}

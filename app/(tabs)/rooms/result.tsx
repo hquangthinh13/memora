@@ -1,6 +1,13 @@
 import { useLocalSearchParams } from "expo-router";
 
-import { AppCard, AppText, NavLink, PlaceholderList, Screen } from "@/components";
+import {
+  AppCard,
+  AppText,
+  LoadingState,
+  NavLink,
+  PlaceholderList,
+  Screen,
+} from "@/components";
 import { useRoom } from "@/hooks/useRoom";
 
 export default function RoomResultScreen() {
@@ -16,7 +23,9 @@ export default function RoomResultScreen() {
         </AppText>
       </AppCard>
 
-      {room.loading ? <AppText variant="caption">Loading results...</AppText> : null}
+      {room.loading ? (
+        <LoadingState label="Loading results..." center={false} />
+      ) : null}
       {room.error ? <AppText variant="caption" className="text-danger">{room.error}</AppText> : null}
 
       <PlaceholderList

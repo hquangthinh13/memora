@@ -36,9 +36,40 @@ export async function upsertProfileForUser(user: User) {
     primary_provider: getPrimaryProvider(user),
   };
 
+  // Only insert on first login — ignore conflicts so user-edited fields
+  // (display_name, avatar_url) are never overwritten by OAuth metadata.
+  const { error: upsertError } = await supabase
+    .from("users")
+    .upsert(profile, { onConflict: "id", ignoreDuplicates: true });
+
+  if (upsertError) {
+    throw upsertError;
+  }
+
+  // Always re-fetch so callers get the live DB state.
   const { data, error } = await supabase
     .from("users")
-    .upsert(profile, { onConflict: "id" })
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export type ProfileUpdates = {
+  display_name?: string;
+  avatar_url?: string | null;
+};
+
+export async function updateProfile(userId: string, updates: ProfileUpdates) {
+  const { data, error } = await supabase
+    .from("users")
+    .update(updates)
+    .eq("id", userId)
     .select()
     .single();
 

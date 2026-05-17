@@ -4,11 +4,16 @@ import {
   BookOpen01Icon,
   HelpCircleIcon,
   UserGroupIcon,
+  Tag01Icon,
 } from "@hugeicons/core-free-icons";
 import { Image, TouchableOpacity, View } from "react-native";
 
 import { cn } from "@/lib/cn";
-import type { CollaboratorPreviewProfile, DeckSummary, PublishedDeckSummary } from "@/services/decks";
+import type {
+  CollaboratorPreviewProfile,
+  DeckSummary,
+  PublishedDeckSummary,
+} from "@/services/decks";
 import { AppText } from "@/components/shared";
 import {
   AvatarStack,
@@ -24,6 +29,7 @@ export type DeckCardData = {
   cover_image_url: string | null;
   cover_url: string | null;
   visibility: DeckSummary["visibility"];
+  status?: DeckSummary["status"];
   topics?: { name: string } | null;
   card_count: number;
   question_count?: number;
@@ -37,7 +43,9 @@ type DeckCardProps = {
   className?: string;
 };
 
-function toDeckCardData(deck: DeckCardData | DeckSummary | PublishedDeckSummary): DeckCardData {
+function toDeckCardData(
+  deck: DeckCardData | DeckSummary | PublishedDeckSummary,
+): DeckCardData {
   const withDefaults = deck as Partial<DeckCardData>;
 
   return {
@@ -47,6 +55,7 @@ function toDeckCardData(deck: DeckCardData | DeckSummary | PublishedDeckSummary)
     cover_image_url: deck.cover_image_url ?? null,
     cover_url: deck.cover_url ?? null,
     visibility: deck.visibility,
+    status: withDefaults.status,
     topics: deck.topics,
     card_count: deck.card_count,
     question_count:
@@ -66,6 +75,11 @@ function toDeckCardData(deck: DeckCardData | DeckSummary | PublishedDeckSummary)
 export function DeckCard({ deck, href, className }: DeckCardProps) {
   const data = toDeckCardData(deck);
   const coverUrl = data.cover_image_url ?? data.cover_url;
+  const shouldShowStatus = data.status === "Preparing" || data.status === "Failed";
+  const statusClassName =
+    data.status === "Failed"
+      ? "border-danger/30 bg-pink-soft"
+      : "border-peach/50 bg-peach-soft";
 
   const content = (
     <TouchableOpacity
@@ -77,41 +91,71 @@ export function DeckCard({ deck, href, className }: DeckCardProps) {
     >
       <View>
         {coverUrl ? (
-          <Image source={{ uri: coverUrl }} className="h-40 w-full bg-surface-soft" />
+          <Image
+            source={{ uri: coverUrl }}
+            className="h-40 w-full bg-surface-soft"
+          />
         ) : (
           <PastelImageFallback title={data.title} />
         )}
       </View>
 
       <View className="gap-3 p-card">
-        <View className="gap-1">
-          <AppText variant="subtitle" numberOfLines={2}>
-            {data.title}
-          </AppText>
-          <AppText variant="caption" className="text-text-muted" numberOfLines={2}>
+        <View className="gap-2">
+          <View className="flex-row items-start justify-between gap-3">
+            <AppText variant="subtitle" numberOfLines={2} className="flex-1">
+              {data.title}
+            </AppText>
+            {shouldShowStatus ? (
+              <View className={cn("rounded-lg border px-2 py-1", statusClassName)}>
+                <AppText
+                  variant="caption"
+                  className="font-sans-semibold text-text"
+                >
+                  {data.status}
+                </AppText>
+              </View>
+            ) : null}
+          </View>
+          {/* <AppText
+            variant="caption"
+            className="text-text-muted"
+            numberOfLines={2}
+          >
             {data.description ?? "No description yet."}
-          </AppText>
+          </AppText> */}
         </View>
 
-        {data.topics?.name ? (
-          <View className="self-start rounded-full bg-mint-soft px-3 py-1">
-            <AppText variant="caption" className="font-sans-medium text-text">
-              {data.topics.name}
-            </AppText>
-          </View>
-        ) : null}
-
         <View className="flex-row items-center justify-between gap-3">
+          {/* {data.topics?.name ? (
+            <View className="self-start rounded-full bg-mint-soft px-3 py-1">
+              <AppText variant="caption" className="font-sans-medium text-text">
+                {data.topics.name}
+              </AppText>
+            </View>
+          ) : null} */}
           <View className="flex-1 flex-row flex-wrap items-center gap-2">
-            <VisibilityBadge visibility={data.visibility} />
+            {/* <VisibilityBadge visibility={data.visibility} /> */}
+            {data.topics?.name ? (
+              <MetaPill icon={Tag01Icon} label={`${data.topics.name}`} />
+            ) : null}
             <MetaPill icon={BookOpen01Icon} label={`${data.card_count}`} />
             {typeof data.question_count === "number" ? (
-              <MetaPill icon={HelpCircleIcon} label={`${data.question_count}`} />
+              <MetaPill
+                icon={HelpCircleIcon}
+                label={`${data.question_count}`}
+              />
             ) : null}
-            <MetaPill icon={UserGroupIcon} label={`${data.collaborator_count}`} />
+            <MetaPill
+              icon={UserGroupIcon}
+              label={`${data.collaborator_count}`}
+            />
           </View>
 
-          <AvatarStack collaborators={data.collaborators ?? []} maxVisible={2} />
+          <AvatarStack
+            collaborators={data.collaborators ?? []}
+            maxVisible={2}
+          />
         </View>
       </View>
     </TouchableOpacity>
@@ -125,5 +169,3 @@ export function DeckCard({ deck, href, className }: DeckCardProps) {
     </Link>
   );
 }
-
-

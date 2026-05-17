@@ -15,12 +15,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { getErrorMessage } from "@/lib/errors";
 import { uploadImageToCloudinary } from "@/services/cloudinary";
 import { createDeck } from "@/services/decks";
+import { getTopic } from "@/services/topics";
 
 export default function CreateDeckScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [topicId, setTopicId] = useState<string | null>(null);
   const [sourceText, setSourceText] = useState("");
   const [selectedCoverUri, setSelectedCoverUri] = useState<string | null>(null);
@@ -46,6 +46,12 @@ export default function CreateDeckScreen() {
     setError(null);
 
     try {
+      const topic = await getTopic(topicId);
+      if (!topic || topic.user_id !== user.id) {
+        setError("Choose a topic from your own profile before generating this deck.");
+        return;
+      }
+
       const cover = selectedCoverUri
         ? await uploadImageToCloudinary({
             localUri: selectedCoverUri,
@@ -56,7 +62,7 @@ export default function CreateDeckScreen() {
         owner_id: user.id,
         topic_id: topicId,
         title: title.trim(),
-        description: description.trim() || null,
+        description: null,
         cover_image_url: cover?.secureUrl ?? null,
         cover_image_public_id: cover?.publicId ?? null,
         source_type: "text",
@@ -84,12 +90,6 @@ export default function CreateDeckScreen() {
           placeholder="HTTP basics"
           value={title}
           onChangeText={setTitle}
-        />
-        <AppInput
-          label="Description"
-          placeholder="Short context for learners"
-          value={description}
-          onChangeText={setDescription}
         />
         <TopicSelect
           value={topicId}

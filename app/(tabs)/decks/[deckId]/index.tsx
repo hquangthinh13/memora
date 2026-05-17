@@ -20,15 +20,13 @@ import {
   ConfirmDialog,
   DraggableBottomSheet,
   EmptyState,
+  LoadingState,
   NavLink,
   Screen,
   SectionHeader,
   StaticFlashcard,
 } from "@/components";
-import { AvatarStack } from "@/components";
-import { MetaPill } from "@/components";
-import { PastelImageFallback } from "@/components";
-import { VisibilityBadge } from "@/components";
+import { AvatarStack, MetaPill, PastelImageFallback, VisibilityBadge } from "@/components";
 import { useDeckCollaborators } from "@/hooks/useDeckCollaborators";
 import { useDeckDetail } from "@/hooks/useDeckDetail";
 import { useDeckGeneration } from "@/hooks/useDeckGeneration";
@@ -320,9 +318,7 @@ export default function DeckDetailScreen() {
       contentClassName="pb-32"
     >
       {loading ? (
-        <AppText variant="caption" className="text-center">
-          Loading deck...
-        </AppText>
+        <LoadingState label="Loading deck..." />
       ) : null}
       {error ? (
         <AppText variant="caption" className="text-center text-danger">
@@ -347,7 +343,8 @@ export default function DeckDetailScreen() {
 
       {deck ? (
         <>
-          <AppCard className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm p-0">
+          <View className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+            <View className="h-1.5 w-full bg-mint" />
             {coverUrl ? (
               <Image
                 source={{ uri: coverUrl }}
@@ -364,58 +361,54 @@ export default function DeckDetailScreen() {
                   {deck.description ?? "No description yet."}
                 </AppText>
               </View>
+            </View>
+          </View>
 
-              {deck.topics?.name ? (
-                <View className="self-start rounded-full bg-mint-soft px-3 py-1">
-                  <AppText
-                    variant="caption"
-                    className="font-sans-medium text-text"
-                  >
-                    {deck.topics.name}
-                  </AppText>
-                </View>
-              ) : null}
-
-              <View className="flex-row items-center justify-between gap-3">
-                <View className="flex-1 flex-row flex-wrap items-center gap-2">
-                  <VisibilityBadge visibility={deck.visibility} />
-                  <MetaPill
-                    icon={BookOpen02Icon}
-                    label={`${deck.card_count}`}
-                  />
-                  <MetaPill
-                    icon={Quiz02Icon}
-                    label={`${questions.questions.length || deck.question_count}`}
-                  />
-                  <MetaPill
-                    icon={UserGroupIcon}
-                    label={`${acceptedCollaborators.length}`}
-                  />
-                </View>
-                <AvatarStack
-                  collaborators={acceptedNonOwnerCollaborators.map(
-                    (item) => item.profile,
-                  )}
-                  maxVisible={2}
-                />
-              </View>
-
-              <View className="rounded-full border border-border bg-surface-soft px-3 py-1 self-start">
+          <View className="gap-3">
+            {deck.topics?.name ? (
+              <View className="self-start rounded-full bg-mint-soft px-3 py-1">
                 <AppText
                   variant="caption"
-                  className="font-sans-semibold text-text"
+                  className="font-sans-medium text-text"
                 >
-                  {deck.status}
+                  {deck.topics.name}
                 </AppText>
               </View>
+            ) : null}
 
-              {deck.generation_error ? (
-                <AppText variant="caption" className="text-danger">
-                  {deck.generation_error}
-                </AppText>
-              ) : null}
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-1 flex-row flex-wrap items-center gap-2">
+                <VisibilityBadge visibility={deck.visibility} />
+                <MetaPill icon={BookOpen02Icon} label={`${deck.card_count}`} />
+                <MetaPill
+                  icon={Quiz02Icon}
+                  label={`${questions.questions.length || deck.question_count}`}
+                />
+                <MetaPill
+                  icon={UserGroupIcon}
+                  label={`${acceptedCollaborators.length}`}
+                />
+              </View>
+              <AvatarStack
+                collaborators={acceptedNonOwnerCollaborators.map(
+                  (item) => item.profile,
+                )}
+                maxVisible={2}
+              />
             </View>
-          </AppCard>
+
+            <View className="rounded-full border border-border bg-surface-soft px-3 py-1 self-start">
+              <AppText variant="caption" className="font-sans-semibold text-text">
+                {deck.status}
+              </AppText>
+            </View>
+
+            {deck.generation_error ? (
+              <AppText variant="caption" className="text-danger">
+                {deck.generation_error}
+              </AppText>
+            ) : null}
+          </View>
 
           <View className="flex-row flex-wrap gap-3">
             <View className="min-w-[46%] flex-1">
@@ -475,12 +468,7 @@ export default function DeckDetailScreen() {
             <View className="gap-3">
               <AppText variant="subtitle">Collaborators</AppText>
               {collaborators.loading ? (
-                <AppText
-                  variant="caption"
-                  className="text-center text-text-muted"
-                >
-                  Loading...
-                </AppText>
+                <LoadingState />
               ) : acceptedCollaborators.length === 0 ? (
                 <EmptyState
                   title="No collaborators"

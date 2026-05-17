@@ -5,6 +5,7 @@ export { AppText } from "./AppText";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { DraggableBottomSheet } from "./DraggableBottomSheet";
 export { EmptyState } from "./EmptyState";
+export { LoadingState } from "./LoadingState";
 export { NavLink } from "./NavLink";
 export { SafeAreaView } from "./SafeAreaView";
 export { Screen } from "./Screen";

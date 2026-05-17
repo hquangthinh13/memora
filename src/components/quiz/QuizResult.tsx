@@ -1,9 +1,11 @@
+import { useMemo, useState } from "react";
 import { View } from "react-native";
 
 import type { QuizAnswerResult } from "@/hooks/useQuizSession";
-import { AppButton } from "@/components/shared";
-import { AppCard } from "@/components/shared";
-import { AppText } from "@/components/shared";
+import { AppButton, AppCard, AppText } from "@/components/shared";
+import { QuizResultSummaryCard } from "./QuizResultSummaryCard";
+import { QuizReviewItem } from "./QuizReviewItem";
+import { QuizTypeBreakdown } from "./QuizTypeBreakdown";
 
 type QuizResultProps = {
   score: number;
@@ -32,10 +34,15 @@ function formatCorrectAnswer(value: unknown): string {
   return String(value ?? "");
 }
 
-export function QuizResult({ score, total, results, onRestart }: QuizResultProps) {
+export function QuizResult({
+  score,
+  total,
+  results,
+  onRestart,
+}: QuizResultProps) {
+  const [showAll, setShowAll] = useState(false);
   const pct = total ? Math.round((score / total) * 100) : 0;
 
-  // Per-type breakdown
   const typeStats: Record<string, { correct: number; total: number }> = {};
   for (const r of results) {
     const t = r.question.type;
@@ -43,89 +50,83 @@ export function QuizResult({ score, total, results, onRestart }: QuizResultProps
     typeStats[t].total++;
     if (r.correct) typeStats[t].correct++;
   }
-  const typeEntries = Object.entries(typeStats);
-  const hasMultipleTypes = typeEntries.length > 1;
+
+  const typeEntries = Object.entries(typeStats).map(([type, stat]) => {
+    const label = TYPE_LABELS[type] ?? type.replace(/_/g, " ");
+    const percent = stat.total
+      ? Math.round((stat.correct / stat.total) * 100)
+      : 0;
+    const toneClassName = TYPE_COLORS[type] ?? "bg-surface-soft";
+    return {
+      type,
+      label,
+      correct: stat.correct,
+      total: stat.total,
+      percent,
+      toneClassName,
+    };
+  });
+
+  const timedOutCount = results.filter((result) => result.timedOut).length;
+  const incorrectCount = results.filter((result) => !result.correct).length;
+  const topMistakes = useMemo(
+    () =>
+      results
+        .filter((result) => result.timedOut || !result.correct)
+        .slice(0, 5),
+    [results],
+  );
+
+  const displayedResults = showAll ? results : topMistakes;
+  const reviewTitle = showAll ? "All answers" : "Top mistakes";
 
   return (
     <View className="gap-4">
-      {/* Score card */}
-      <AppCard className="gap-3 bg-mint-soft">
-        <AppText variant="subtitle">Quiz complete</AppText>
-        <AppText variant="title" className="text-4xl">
-          {score}/{total}
-        </AppText>
-        <AppText variant="caption">{pct}% correct</AppText>
-      </AppCard>
+      <QuizResultSummaryCard
+        score={score}
+        total={total}
+        percent={pct}
+        correctCount={score}
+        incorrectCount={incorrectCount}
+        timedOutCount={timedOutCount}
+      />
 
-      {/* Per-type breakdown — only shown when the deck had multiple types */}
-      {hasMultipleTypes ? (
-        <AppCard className="gap-3">
-          <AppText variant="subtitle">Breakdown by type</AppText>
-          <View className="gap-2">
-            {typeEntries.map(([type, stat]) => {
-              const label = TYPE_LABELS[type] ?? type.replace(/_/g, " ");
-              const typePct = stat.total ? Math.round((stat.correct / stat.total) * 100) : 0;
-              const color = TYPE_COLORS[type] ?? "bg-surface-soft";
-              return (
-                <View key={type} className="flex-row items-center gap-3">
-                  <View className={`rounded-lg px-3 py-1 ${color}`} style={{ minWidth: 140 }}>
-                    <AppText variant="caption" className="font-sans-semibold">
-                      {label}
-                    </AppText>
-                  </View>
-                  <AppText variant="caption">
-                    {stat.correct}/{stat.total} ({typePct}%)
-                  </AppText>
-                </View>
-              );
-            })}
-          </View>
+      <QuizTypeBreakdown entries={typeEntries} />
+
+      <View className="flex-row items-center justify-between">
+        <AppText variant="subtitle">{reviewTitle}</AppText>
+        <AppButton
+          title={showAll ? "Show less" : "All answers"}
+          variant="secondary"
+          className="min-h-9 px-0"
+          onPress={() => setShowAll((prev) => !prev)}
+        />
+      </View>
+
+      {displayedResults.length === 0 ? (
+        <AppCard className="bg-mint-soft border-mint/50">
+          <AppText variant="caption" className="text-text-muted">
+            Great run. No mistakes to review.
+          </AppText>
         </AppCard>
-      ) : null}
-
-      {/* Per-question review */}
-      {results.map((result, i) => {
-        const correct = formatCorrectAnswer(result.question.correct_answer);
-        return (
-          <AppCard
-            key={result.question.id ?? i}
-            className={`gap-2 ${result.correct ? "border-mint" : "border-border"}`}
-          >
-            <View className="flex-row items-center justify-between">
-              <AppText
-                variant="caption"
-                className={`font-sans-semibold ${result.correct ? "text-text" : "text-danger"}`}
-              >
-                {result.timedOut ? "Time's up" : result.correct ? "Correct" : "Incorrect"}
-              </AppText>
-              <AppText variant="caption" className="text-text-muted">
-                {TYPE_LABELS[result.question.type] ?? result.question.type}
-              </AppText>
-            </View>
-
-            <AppText variant="caption" className="text-text-muted">
-              {result.question.question}
-            </AppText>
-
-            {!result.correct || result.timedOut ? (
-              <>
-                {!result.timedOut ? (
-                  <AppText variant="caption">Your answer: {result.answer}</AppText>
-                ) : null}
-                <AppText variant="caption" className="font-sans-semibold">
-                  Correct: {correct}
-                </AppText>
-              </>
-            ) : (
-              <AppText variant="caption">Your answer: {result.answer}</AppText>
-            )}
-          </AppCard>
-        );
-      })}
+      ) : (
+        displayedResults.map((result, i) => {
+          const correct = formatCorrectAnswer(result.question.correct_answer);
+          const typeLabel =
+            TYPE_LABELS[result.question.type] ?? result.question.type;
+          return (
+            <QuizReviewItem
+              key={result.question.id ?? i}
+              result={result}
+              typeLabel={typeLabel}
+              correctAnswerText={correct}
+              compact={showAll && result.correct}
+            />
+          );
+        })
+      )}
 
       <AppButton title="Restart quiz" onPress={onRestart} />
     </View>
   );
 }
-
-

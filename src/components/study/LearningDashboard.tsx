@@ -13,6 +13,7 @@ import type { WeekDay } from "@/hooks/useLearningProgress";
 import type { UserLearningStats } from "@/services/learningProgress";
 import { AppCard } from "@/components/shared";
 import { AppText } from "@/components/shared";
+import { LoadingState } from "@/components/shared";
 
 type Props = {
   stats: UserLearningStats | null;
@@ -196,20 +197,7 @@ export function LearningDashboard({
     return (
       <AppCard className="gap-4">
         <AppText variant="subtitle">Learning progress</AppText>
-        <View className="flex-row gap-3">
-          <View
-            className="flex-1 rounded-lg bg-surface-soft p-4"
-            style={{ height: 72 }}
-          />
-          <View
-            className="flex-1 rounded-lg bg-surface-soft p-4"
-            style={{ height: 72 }}
-          />
-          <View
-            className="flex-1 rounded-lg bg-surface-soft p-4"
-            style={{ height: 72 }}
-          />
-        </View>
+        <LoadingState label="Loading progress..." />
       </AppCard>
     );
   }

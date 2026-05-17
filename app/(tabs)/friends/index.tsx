@@ -15,6 +15,7 @@ import {
   AppText,
   ConfirmDialog,
   EmptyState,
+  LoadingState,
   Screen,
   SectionHeader,
   UserItem,
@@ -94,12 +95,7 @@ export default function FriendsScreen() {
             <View className="gap-3">
               <AppText variant="subtitle">Search results</AppText>
               {searching ? (
-                <AppText
-                  variant="caption"
-                  className="text-center text-text-muted"
-                >
-                  Searching...
-                </AppText>
+                <LoadingState label="Searching..." />
               ) : results.length === 0 ? (
                 <EmptyState
                   title="No users found"
@@ -211,12 +207,7 @@ export default function FriendsScreen() {
               <View className="gap-3">
                 <AppText variant="subtitle">Your friends</AppText>
                 {friends.loading ? (
-                  <AppText
-                    variant="caption"
-                    className="text-center text-text-muted"
-                  >
-                    Loading...
-                  </AppText>
+                  <LoadingState />
                 ) : friends.friends.length === 0 ? (
                   <EmptyState
                     title="No friends yet"
@@ -320,9 +311,7 @@ export default function FriendsScreen() {
       ) : (
         <View className="gap-4">
           {sharedLibrary.loading ? (
-            <AppText variant="caption" className="text-center text-text-muted">
-              Loading shared library...
-            </AppText>
+            <LoadingState label="Loading shared library..." />
           ) : sharedLibrary.error ? (
             <AppText variant="caption" className="text-danger">
               {sharedLibrary.error}

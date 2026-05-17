@@ -22,7 +22,11 @@ function shuffle(values: string[]) {
 }
 
 function normalizeAnswer(value: string) {
-  return value.trim().toLowerCase();
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()[\]"']/g, "")
+    .replace(/\s+/g, " ");
 }
 
 function isCorrectAnswer(question: Question, answer: string) {

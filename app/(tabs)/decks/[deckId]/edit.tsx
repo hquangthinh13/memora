@@ -7,6 +7,7 @@ import {
   AppInput,
   AppText,
   DeckCoverPicker,
+  LoadingState,
   Screen,
   TopicSelect,
   SectionHeader,
@@ -109,9 +110,7 @@ export default function EditDeckScreen() {
       }
     >
       {loading ? (
-        <AppText variant="caption" className="text-center">
-          Loading deck...
-        </AppText>
+        <LoadingState label="Loading deck..." />
       ) : null}
       {error ? (
         <AppText variant="caption" className="text-danger">

@@ -6,6 +6,7 @@ import {
   DeckCard,
   EmptyState,
   LearningDashboard,
+  LoadingState,
   NavLink,
   Screen,
   SectionHeader,
@@ -90,11 +91,15 @@ export default function HomeScreen() {
       <View className="gap-4">
         <View>
           <AppText variant="subtitle">Recent decks</AppText>
-          <AppText variant="caption">
-            {loading
-              ? "Loading your library..."
-              : "Pick up where you left off."}
-          </AppText>
+          {loading ? (
+            <LoadingState
+              label="Loading your library..."
+              size="sm"
+              center={false}
+            />
+          ) : (
+            <AppText variant="caption">Pick up where you left off.</AppText>
+          )}
         </View>
         {recentDecks.length ? (
           recentDecks.map((deck) => (

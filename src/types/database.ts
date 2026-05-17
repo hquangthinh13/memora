@@ -177,6 +177,7 @@ export type Database = {
           question: string;
           correct_answer: Json;
           wrong_answers: string[];
+          hint: string | null;
           difficulty: number;
           time_limit: number;
           created_at: string;
@@ -189,6 +190,7 @@ export type Database = {
           question: string;
           correct_answer: Json;
           wrong_answers?: string[];
+          hint?: string | null;
           difficulty?: number;
           time_limit?: number;
           created_at?: string;

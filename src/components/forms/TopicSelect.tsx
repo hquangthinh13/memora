@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Modal, ScrollView, TouchableOpacity, View } from "react-native";
 
 import { CreateTopicSheet } from "@/components/topics";
-import { AppButton, AppText, EmptyState } from "@/components/shared";
+import { AppButton, AppText, EmptyState, LoadingState } from "@/components/shared";
 import { useTopics } from "@/hooks/useTopics";
 import { cn } from "@/lib/cn";
 
@@ -132,7 +132,7 @@ export function TopicSelect({
             />
 
             {loading ? (
-              <AppText variant="caption">Loading topics...</AppText>
+              <LoadingState label="Loading topics..." center={false} size="sm" />
             ) : null}
 
             <ScrollView

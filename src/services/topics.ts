@@ -24,6 +24,18 @@ export async function listTopics() {
   return data ?? [];
 }
 
+export async function getTopic(topicId: string) {
+  const { data, error } = await supabase
+    .from("topics")
+    .select("*")
+    .eq("id", topicId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return data;
+}
+
 export async function listTopicsPage({
   limit,
   offset,

@@ -13,6 +13,7 @@ import {
   AppText,
   DeckCard,
   EmptyState,
+  LoadingState,
   NavLink,
   Screen,
   SectionHeader,
@@ -82,9 +83,7 @@ export default function ProfileScreen() {
         />
 
         {topics.loadingInitial ? (
-          <AppText variant="caption" className="text-text-muted">
-            Loading topics...
-          </AppText>
+          <LoadingState label="Loading topics..." center={false} />
         ) : topics.items.length === 0 ? (
           <EmptyState
             title="No topics yet"
@@ -105,9 +104,7 @@ export default function ProfileScreen() {
             ListFooterComponent={
               topics.loadingMore ? (
                 <View className="justify-center pr-3">
-                  <AppText variant="caption" className="text-text-muted">
-                    Loading...
-                  </AppText>
+                  <LoadingState size="sm" />
                 </View>
               ) : null
             }
@@ -123,9 +120,7 @@ export default function ProfileScreen() {
         />
 
         {friends.loading ? (
-          <AppText variant="caption" className="text-text-muted">
-            Loading friends...
-          </AppText>
+          <LoadingState label="Loading friends..." center={false} />
         ) : friends.friends.length === 0 ? (
           <EmptyState
             title="No friends yet"
@@ -147,9 +142,7 @@ export default function ProfileScreen() {
         <ProfileSectionHeader title="Published decks" />
 
         {publishedDecks.loading ? (
-          <AppText variant="caption" className="text-text-muted">
-            Loading published decks...
-          </AppText>
+          <LoadingState label="Loading published decks..." center={false} />
         ) : publishedDecks.items.length === 0 ? (
           <EmptyState
             title="No published decks"

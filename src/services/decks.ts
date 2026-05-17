@@ -62,6 +62,17 @@ type DeckDetailRow = Deck & {
   topics?: Pick<Topic, "id" | "name"> | null;
 };
 
+function createClientId() {
+  const randomUUID = globalThis.crypto?.randomUUID;
+  if (typeof randomUUID === "function") return randomUUID.call(globalThis.crypto);
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16);
+    const nibble = char === "x" ? value : (value & 0x3) | 0x8;
+    return nibble.toString(16);
+  });
+}
+
 function getPermission(
   deck: Pick<Deck, "owner_id"> & { deck_collaborators?: DeckCollaborator[] },
   userId?: string | null,
@@ -127,9 +138,12 @@ async function buildCollaboratorProfilesByDeck(
 
 export async function listDecks() {
   const userId = await getCurrentUserId();
+  if (!userId) return [] as DeckSummary[];
+
   const { data, error } = await supabase
     .from("decks")
     .select("*, topics(id, name), cards(id), questions(id), deck_collaborators(*)")
+    .eq("owner_id", userId)
     .eq("is_archived", false)
     .order("updated_at", { ascending: false });
 
@@ -200,17 +214,40 @@ export async function getDeckDetail(deckId: string) {
 }
 
 export async function createDeck(deck: Inserts<"decks">) {
-  const { data, error } = await supabase
+  const now = new Date().toISOString();
+  const id = deck.id ?? createClientId();
+  const payload = { ...deck, id };
+
+  const { error } = await supabase
     .from("decks")
-    .insert(deck)
-    .select()
-    .single();
+    .insert(payload);
 
   if (error) {
     throw error;
   }
 
-  return data;
+  return {
+    owner_id: payload.owner_id,
+    title: payload.title,
+    id,
+    description: payload.description ?? null,
+    visibility: payload.visibility ?? "PRIVATE",
+    share_code: payload.share_code ?? null,
+    language: payload.language ?? null,
+    tags: payload.tags ?? [],
+    cover_url: payload.cover_url ?? null,
+    cover_image_url: payload.cover_image_url ?? null,
+    cover_image_public_id: payload.cover_image_public_id ?? null,
+    topic_id: payload.topic_id ?? null,
+    source_type: payload.source_type ?? "text",
+    source_text: payload.source_text ?? null,
+    source_file_path: payload.source_file_path ?? null,
+    status: payload.status ?? "Ready",
+    generation_error: payload.generation_error ?? null,
+    is_archived: payload.is_archived ?? false,
+    created_at: payload.created_at ?? now,
+    updated_at: payload.updated_at ?? now,
+  } satisfies Deck;
 }
 
 export async function updateDeck(deckId: string, deck: Updates<"decks">) {

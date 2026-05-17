@@ -15,13 +15,17 @@ type AnswerInputProps = {
 };
 
 const MCQ_OPTION_CLASSES = [
-  "bg-mint-soft border-mint",
-  "bg-lavender-soft border-lavender",
-  "bg-yellow-soft border-yellow-soft",
-  "bg-pink-soft border-pink-soft",
+  "bg-surface border-border",
+  "bg-surface border-border",
+  "bg-surface border-border",
+  "bg-surface border-border",
 ];
 
-// True / False — two large distinct cards
+function optionLabelFor(index: number) {
+  return String.fromCharCode(65 + index);
+}
+
+// True / False - two large distinct cards
 function TrueFalseInput({
   options,
   selectedAnswer,
@@ -31,40 +35,28 @@ function TrueFalseInput({
   selectedAnswer: string | null;
   onAnswer: (answer: string) => void;
 }) {
-  const trueSelected = selectedAnswer === "True";
-  const falseSelected = selectedAnswer === "False";
-
   return (
-    <View className="gap-3">
-      <TouchableOpacity
-        activeOpacity={0.85}
-        disabled={Boolean(selectedAnswer)}
-        onPress={() => onAnswer("True")}
-        className={cn(
-          "min-h-20 items-center justify-center rounded-lg border-2 px-5 py-5",
-          trueSelected ? "border-text bg-mint" : "border-mint bg-mint-soft",
-          selectedAnswer && !trueSelected && "opacity-50",
-        )}
-      >
-        <AppText variant="title" className={cn("text-2xl", trueSelected && "text-text")}>
-          True
-        </AppText>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        activeOpacity={0.85}
-        disabled={Boolean(selectedAnswer)}
-        onPress={() => onAnswer("False")}
-        className={cn(
-          "min-h-20 items-center justify-center rounded-lg border-2 px-5 py-5",
-          falseSelected ? "border-text bg-pink" : "border-pink-soft bg-pink-soft",
-          selectedAnswer && !falseSelected && "opacity-50",
-        )}
-      >
-        <AppText variant="title" className={cn("text-2xl", falseSelected && "text-text")}>
-          False
-        </AppText>
-      </TouchableOpacity>
+    <View className="flex-row gap-3">
+      {(options.length ? options : ["True", "False"]).map((option) => {
+        const selected = selectedAnswer === option;
+        return (
+          <TouchableOpacity
+            key={option}
+            activeOpacity={0.85}
+            disabled={Boolean(selectedAnswer)}
+            onPress={() => onAnswer(option)}
+            className={cn(
+              "min-h-16 flex-1 items-center justify-center rounded-lg border px-4 py-4",
+              selected ? "border-2 border-text bg-surface-soft" : "border-border bg-surface",
+              selectedAnswer && !selected && "opacity-50",
+            )}
+          >
+            <AppText variant="subtitle" className="text-center">
+              {option}
+            </AppText>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -88,28 +80,15 @@ function TextAnswerInput({
 
   return (
     <View className="gap-3 rounded-lg border border-border bg-surface-soft p-4">
-      {isShortAnswer ? (
-        <AppInput
-          label="Your answer"
-          placeholder="Write a brief answer..."
-          value={text}
-          editable={!selectedAnswer}
-          onChangeText={setText}
-          multiline
-          numberOfLines={3}
-          inputClassName="min-h-20 py-3"
-        />
-      ) : (
-        <AppInput
-          label="Fill in the blank"
-          placeholder="Type the missing word(s)..."
-          value={text}
-          editable={!selectedAnswer}
-          onChangeText={setText}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      )}
+      <AppInput
+        label={isShortAnswer ? "Short answer" : "Fill in the blank"}
+        placeholder={isShortAnswer ? "Type a short answer..." : "Type the missing term..."}
+        value={text}
+        editable={!selectedAnswer}
+        onChangeText={setText}
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
       <AppButton
         title="Submit answer"
         disabled={!text.trim() || Boolean(selectedAnswer)}
@@ -119,7 +98,7 @@ function TextAnswerInput({
   );
 }
 
-// MCQ — colored option cards
+// MCQ - neutral option cards
 function McqInput({
   options,
   selectedAnswer,
@@ -133,6 +112,7 @@ function McqInput({
     <View className="gap-3">
       {options.map((option, index) => {
         const selected = selectedAnswer === option;
+        const optionLabel = optionLabelFor(index);
         return (
           <TouchableOpacity
             key={option}
@@ -146,9 +126,16 @@ function McqInput({
               selectedAnswer && !selected && "opacity-60",
             )}
           >
-            <AppText variant="body" className="font-sans-semibold">
-              {option}
-            </AppText>
+            <View className="flex-row items-center gap-3">
+              <View className="h-7 w-7 items-center justify-center rounded-full bg-surface/85">
+                <AppText variant="caption" className="font-sans-semibold">
+                  {optionLabel}
+                </AppText>
+              </View>
+              <AppText variant="body" className="flex-1 font-sans-semibold">
+                {option}
+              </AppText>
+            </View>
           </TouchableOpacity>
         );
       })}

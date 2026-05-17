@@ -5,11 +5,12 @@ import { View } from "react-native";
 
 import {
   AnswerInput,
-  AppButton,
-  AppCard,
   AppText,
   EmptyState,
+  LoadingState,
+  QuestionProgressSegments,
   QuestionRenderer,
+  ResultAnswerSection,
   QuizResult,
   Screen,
   SectionHeader,
@@ -59,23 +60,17 @@ export default function QuizScreen() {
       : "Incorrect";
   const resultTone = latestResult?.timedOut
     ? {
-        cardClassName: "bg-yellow-soft border-peach",
-        titleClassName: "text-peach",
-        badgeClassName: "bg-surface/70",
-        badgeText: "Timed out",
+        cardClassName: "",
+        titleClassName: "",
       }
     : latestResult?.correct
       ? {
-          cardClassName: "bg-mint-soft border-mint",
-          titleClassName: "text-mint",
-          badgeClassName: "bg-surface/70",
-          badgeText: "Correct answer",
+          cardClassName: "",
+          titleClassName: "",
         }
       : {
-          cardClassName: "bg-pink-soft border-danger/40",
-          titleClassName: "text-danger",
-          badgeClassName: "bg-surface/70",
-          badgeText: "Needs review",
+          cardClassName: "",
+          titleClassName: "",
         };
   return (
     <Screen
@@ -96,7 +91,7 @@ export default function QuizScreen() {
       ) : null}
 
       {quiz.loading ? (
-        <AppText variant="caption">Loading questions...</AppText>
+        <LoadingState label="Loading questions..." center={false} />
       ) : null}
       {quiz.error ? (
         <AppText variant="caption" className="text-danger">
@@ -122,6 +117,11 @@ export default function QuizScreen() {
 
       {quiz.currentQuestion && !quiz.done ? (
         <View className="gap-4">
+          <QuestionProgressSegments
+            currentIndex={quiz.index}
+            total={quiz.total}
+          />
+
           <QuestionRenderer
             question={quiz.currentQuestion}
             index={quiz.index}
@@ -130,6 +130,7 @@ export default function QuizScreen() {
             timeLimit={quiz.timeLimit}
             score={quiz.score}
             wrongCount={quiz.wrongCount}
+            showIllustration
           />
 
           <AnswerInput
@@ -138,41 +139,6 @@ export default function QuizScreen() {
             selectedAnswer={quiz.selectedAnswer}
             onAnswer={quiz.answer}
           />
-
-          {/* {quiz.selectedAnswer ? (
-            <AppCard className="gap-3 rounded-lg bg-surface-soft">
-              <AppText variant="body" className="font-sans-semibold">
-                {quiz.results[quiz.results.length - 1]?.timedOut
-                  ? "Time's up"
-                  : quiz.results[quiz.results.length - 1]?.correct
-                    ? "Correct"
-                    : "Review this one"}
-              </AppText>
-
-              <AppText variant="caption">
-                Your answer: {quiz.selectedAnswer}
-              </AppText>
-
-              <View className="flex-row gap-2">
-                <View className="flex-1 rounded-lg bg-mint-soft px-4 py-3">
-                  <AppText variant="caption">Correct</AppText>
-                  <AppText variant="subtitle">{quiz.score}</AppText>
-                </View>
-
-                <View className="flex-1 rounded-lg bg-pink-soft px-4 py-3">
-                  <AppText variant="caption">Wrong</AppText>
-                  <AppText variant="subtitle">{quiz.wrongCount}</AppText>
-                </View>
-              </View>
-
-              <AppButton
-                title={
-                  quiz.index + 1 >= quiz.total ? "See result" : "Next question"
-                }
-                onPress={quiz.next}
-              />
-            </AppCard>
-          ) : null} */}
           <ConfirmDialog
             visible={Boolean(quiz.selectedAnswer && latestResult)}
             title={resultTitle}
@@ -185,36 +151,26 @@ export default function QuizScreen() {
             onCancel={quiz.next}
             onConfirm={quiz.next}
             children={
-              <View className="gap-2">
-                <View className={`self-start rounded-full px-3 py-1 ${resultTone.badgeClassName}`}>
-                  <AppText variant="caption" className="font-sans-semibold text-text">
-                    {resultTone.badgeText}
-                  </AppText>
-                </View>
+              <View className="gap-2 my-6">
+                <ResultAnswerSection
+                  label="Your answer"
+                  value={
+                    latestResult?.timedOut ? "Timed out" : selectedAnswerText
+                  }
+                  className={
+                    latestResult?.correct
+                      ? "border-peach bg-peach-soft"
+                      : "border-peach bg-peach-soft"
+                  }
+                />
 
-                {latestResult?.timedOut ? (
-                  <>
-                    <AppText variant="caption" className="text-text-muted">
-                      You ran out of time.
-                    </AppText>
-                    <AppText variant="caption" className="font-sans-semibold text-text">
-                      Correct answer: {correctAnswerText}
-                    </AppText>
-                  </>
-                ) : latestResult?.correct ? (
-                  <AppText variant="caption" className="text-text-muted">
-                    Your answer: {selectedAnswerText}
-                  </AppText>
-                ) : (
-                  <>
-                    <AppText variant="caption" className="text-text-muted">
-                      Your answer: {selectedAnswerText}
-                    </AppText>
-                    <AppText variant="caption" className="font-sans-semibold text-text">
-                      Correct answer: {correctAnswerText}
-                    </AppText>
-                  </>
-                )}
+                <View className="h-px bg-border/80" />
+
+                <ResultAnswerSection
+                  label="Correct answer"
+                  value={correctAnswerText}
+                  className="bg-mint-soft border-mint"
+                />
               </View>
             }
           />
@@ -223,4 +179,3 @@ export default function QuizScreen() {
     </Screen>
   );
 }
-

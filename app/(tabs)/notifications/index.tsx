@@ -6,6 +6,7 @@ import {
   AppButton,
   AppText,
   EmptyState,
+  LoadingState,
   NotificationItem,
   Screen,
   SectionHeader,
@@ -85,9 +86,7 @@ export default function NotificationsScreen() {
       contentClassName="pb-32"
     >
       {notifications.loading ? (
-        <AppText variant="caption" className="text-center text-text-muted">
-          Loading...
-        </AppText>
+        <LoadingState />
       ) : notifications.notifications.length === 0 ? (
         <EmptyState
           title="No notifications yet"

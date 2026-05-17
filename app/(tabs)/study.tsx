@@ -8,6 +8,7 @@ import {
   AppCard,
   AppText,
   LearningFlashcard,
+  LoadingState,
   NavLink,
   Screen,
   SectionHeader,
@@ -39,9 +40,7 @@ export default function StudyScreen() {
         ) : null}
 
         {session.loading ? (
-          <AppText variant="caption" className="text-center">
-            Loading cards...
-          </AppText>
+          <LoadingState label="Loading cards..." />
         ) : null}
 
         {session.error ? (

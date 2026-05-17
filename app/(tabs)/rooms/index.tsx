@@ -2,7 +2,16 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
-import { AppButton, AppCard, AppInput, AppText, EmptyState, NavLink, Screen } from "@/components";
+import {
+  AppButton,
+  AppCard,
+  AppInput,
+  AppText,
+  EmptyState,
+  LoadingState,
+  NavLink,
+  Screen,
+} from "@/components";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { useRooms } from "@/hooks/useRooms";
@@ -101,7 +110,7 @@ export default function RoomsScreen() {
 
       <View className="gap-4">
         <AppText variant="subtitle">Open rooms</AppText>
-        {loading ? <AppText variant="caption">Loading rooms...</AppText> : null}
+        {loading ? <LoadingState label="Loading rooms..." center={false} /> : null}
         {rooms.map((room) => (
           <AppCard key={room.id} className="gap-2 bg-surface-soft">
             <AppText variant="body" className="font-sans-semibold">

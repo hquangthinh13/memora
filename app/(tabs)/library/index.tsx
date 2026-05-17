@@ -6,6 +6,7 @@ import {
   AppText,
   DeckCard,
   EmptyState,
+  LoadingState,
   NavLink,
   Screen,
   SectionHeader,
@@ -61,9 +62,7 @@ export default function LibraryScreen() {
       scroll
     >
       {loading ? (
-        <AppText variant="caption" className="text-center">
-          Loading decks...
-        </AppText>
+        <LoadingState label="Loading decks..." />
       ) : null}
       {error ? (
         <AppText variant="caption" className="text-danger">

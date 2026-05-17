@@ -18,11 +18,13 @@ type GeneratedQuestion = {
   question: string;
   correct_answer: string | string[];
   wrong_answers: string[];
+  hint: string;
   difficulty: number;
   time_limit: number;
 };
 
 type GeneratedDeckContent = {
+  description: string;
   cards: GeneratedCard[];
   questions: GeneratedQuestion[];
 };
@@ -101,7 +103,7 @@ function getDefaultTimeLimit(type: string): number {
     case "true_false": return 10;
     case "mcq": return 15;
     case "fill_in_the_blank": return 20;
-    case "short_answer": return 30;
+    case "short_answer": return 20;
     default: return 15;
   }
 }
@@ -120,12 +122,45 @@ function normalizeTrueFalseAnswer(value: unknown): "True" | "False" | null {
   return null;
 }
 
+function getQuestionDiversityIssue(questions: GeneratedQuestion[]): string | null {
+  if (questions.length < 4) return null;
+
+  const requiredTypes = ["mcq", "true_false", "fill_in_the_blank", "short_answer"] as const;
+  const counts = new Map<string, number>();
+
+  for (const question of questions) {
+    counts.set(question.type, (counts.get(question.type) ?? 0) + 1);
+  }
+
+  const missing = requiredTypes.filter((type) => !counts.has(type));
+  if (missing.length) {
+    return `AI response must include ${missing.join(", ")} questions.`;
+  }
+
+  const maxAllowed = Math.ceil(questions.length * 0.6);
+  const dominant = [...counts.entries()].find(([, count]) => count > maxAllowed);
+  if (dominant) {
+    return `AI response is too heavily weighted toward ${dominant[0]} questions.`;
+  }
+
+  return null;
+}
+
+function answerTextValues(value: string | string[]): string[] {
+  return Array.isArray(value) ? value : [value];
+}
+
+function hasShortAnswerShape(value: string): boolean {
+  return value.trim().split(/\s+/).filter(Boolean).length <= 5;
+}
+
 function validateGeneratedContent(value: unknown): GeneratedDeckContent {
   if (!value || typeof value !== "object") {
     throw new Error("AI response must be a JSON object.");
   }
 
   const obj = value as Record<string, unknown>;
+  const description = asNonEmptyString(obj.description, "description").slice(0, 280);
   const cardsInput = obj.cards;
   const questionsInput = obj.questions;
 
@@ -160,6 +195,7 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
     }
 
     const questionText = asNonEmptyString(q?.question, `question[${i}].question`);
+    const hint = asNonEmptyString(q?.hint, `question[${i}].hint`);
     const difficulty = asDifficulty(q?.difficulty);
 
     // Time limit: use type-appropriate default, clamp to 5–90 s
@@ -212,14 +248,16 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
       }
 
     } else {
-      // fill_in_the_blank or short_answer
-      if (type === "fill_in_the_blank" && !/_{2,}/.test(questionText)) {
+      if (!/_{2,}/.test(questionText)) {
         throw new Error(
-          `fill_in_the_blank question must contain "____" as a blank marker (question ${i + 1}).`,
+          `${type} question must contain "____" as a blank marker (question ${i + 1}).`,
         );
       }
       correct_answer = asCorrectAnswer(q?.correct_answer);
-      wrong_answers = []; // always empty for text-input types
+      if (type === "short_answer" && !answerTextValues(correct_answer).every(hasShortAnswerShape)) {
+        throw new Error(`short_answer correct answers must be short, usually 1 to 5 words (question ${i + 1}).`);
+      }
+      wrong_answers = [];
     }
 
     return {
@@ -227,16 +265,17 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
       question: questionText,
       correct_answer,
       wrong_answers,
+      hint,
       difficulty,
       time_limit,
     };
   });
 
-  return { cards, questions };
+  return { description, cards, questions };
 }
 
 function buildPrompt(
-  deck: { title: string; description: string | null; source_text: string },
+  deck: { title: string; source_text: string },
   isRetry = false,
 ): string {
   const sourceLength = deck.source_text.length;
@@ -246,39 +285,39 @@ function buildPrompt(
   let diversityRule: string;
   if (sourceLength <= 1500) {
     diversityRule = `- Generate ${questionTarget} questions.
-- Use at least 2 different question types.
-- Include at least 1 MCQ, 1 true_false, and 1 fill_in_the_blank or short_answer.
-- No single type should make up more than 50% of the total.`;
+- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
+- Use at least 1 question of each supported type.
+- No single type should make up more than 60% of the total.`;
   } else if (sourceLength <= 5000) {
     diversityRule = `- Generate ${questionTarget} questions.
-- Include all 4 question types if the content supports it.
+- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
 - Aim for: MCQ ~30%, true_false ~25%, fill_in_the_blank ~25%, short_answer ~20%.
-- No single type should exceed 40% of the total.`;
+- No single type should exceed 60% of the total.`;
   } else {
     diversityRule = `- Generate ${questionTarget} questions.
-- Include all 4 question types.
-- Aim for equal distribution: ~25% each type.
-- No single type should exceed 35% of the total.`;
+- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
+- Aim for a balanced distribution across the four types.
+- No single type should exceed 60% of the total.`;
   }
 
   const retryWarning = isRetry
-    ? `\n⚠️ CRITICAL: Your previous attempt produced only MCQ questions, which is rejected.
-You MUST include true_false, fill_in_the_blank, and short_answer questions.
-Outputting only MCQ will cause this generation to fail entirely.\n`
+    ? `\nCRITICAL: Your previous attempt did not include enough question type diversity.
+You MUST include mcq, true_false, fill_in_the_blank, and short_answer questions.
+Outputting mostly or only MCQ will cause this generation to fail entirely.\n`
     : "";
 
   return `You are a quiz content generator for a mobile study app.
 ${retryWarning}
 Deck title: ${deck.title}
-Deck description: ${deck.description ?? "None"}
 
 Source material:
 ${deck.source_text}
 
-Return ONLY a valid JSON object — no markdown, no code fences, no extra text.
+Return ONLY a valid JSON object - no markdown, no code fences, no extra text.
 
 JSON shape:
 {
+  "description": "A short, learner-friendly summary of what this deck teaches.",
   "cards": [
     {
       "front": "Short question or prompt",
@@ -294,6 +333,7 @@ JSON shape:
       "question": "Which organelle is the powerhouse of the cell?",
       "correct_answer": "Mitochondria",
       "wrong_answers": ["Nucleus", "Ribosome", "Golgi apparatus"],
+      "hint": "Think of the organelle that makes energy for the cell.",
       "difficulty": 1,
       "time_limit": 15
     },
@@ -302,6 +342,7 @@ JSON shape:
       "question": "DNA is stored in the nucleus of eukaryotic cells.",
       "correct_answer": "True",
       "wrong_answers": ["False"],
+      "hint": "Focus on where genetic material is kept in eukaryotic cells.",
       "difficulty": 1,
       "time_limit": 10
     },
@@ -310,44 +351,53 @@ JSON shape:
       "question": "The ____ is responsible for producing ATP in the cell.",
       "correct_answer": ["mitochondria", "mitochondrion"],
       "wrong_answers": [],
+      "hint": "This is the cell's energy-producing organelle.",
       "difficulty": 2,
       "time_limit": 20
     },
     {
       "type": "short_answer",
-      "question": "Briefly explain what DNA replication is.",
-      "correct_answer": ["copying DNA to create two identical strands", "duplicating the DNA double helix before cell division"],
+      "question": "DNA replication creates two ____ DNA strands.",
+      "correct_answer": ["identical", "matching"],
       "wrong_answers": [],
-      "difficulty": 3,
-      "time_limit": 30
+      "hint": "The new strands should match each other.",
+      "difficulty": 2,
+      "time_limit": 20
     }
   ]
 }
 
 RULES:
 
-1. CARDS — Generate ${cardTarget} flashcards.
+1. DESCRIPTION - Generate a concise deck description.
+   - 1-2 sentences, max 280 characters.
+   - Explain what the learner will practice.
+   - Do not mention "source notes" or sound like marketing copy.
+
+2. CARDS - Generate ${cardTarget} flashcards.
    - front: short question or term.
    - back: concise answer.
-   - explanation: 1–2 clear sentences.
-   - difficulty: integer 1–5.
+   - explanation: 1-2 clear sentences.
+   - difficulty: integer 1-5.
    - tags: lowercase strings, max 8.
 
-2. QUESTION DIVERSITY
+3. QUESTION DIVERSITY
 ${diversityRule}
 
-3. QUESTION FORMAT (follow exactly for each type):
+4. QUESTION FORMAT (follow exactly for each type):
 
    mcq
    - Concept recognition or comparison.
    - correct_answer: single string.
    - wrong_answers: exactly 3 plausible but wrong options (no duplicates, none equal correct_answer).
+   - hint: one short clue, not the answer.
    - time_limit: 15.
 
    true_false
    - A factual statement (not a question) that is clearly true or false.
    - correct_answer: must be exactly "True" or "False" (capital T or F, string).
    - wrong_answers: ["False"] if correct is True, else ["True"].
+   - hint: one short clue, not the answer.
    - time_limit: 10.
 
    fill_in_the_blank
@@ -355,21 +405,23 @@ ${diversityRule}
    - The question string MUST contain ____.
    - correct_answer: array of accepted answers/synonyms.
    - wrong_answers: [] (empty).
+   - hint: one short clue, not the answer.
    - time_limit: 20.
 
    short_answer
-   - Open-ended recall or brief explanation.
-   - correct_answer: array of 1–3 accepted phrasings (concise, 1 sentence each).
+   - Cloze-style short recall only; it must contain ____ like fill_in_the_blank.
+   - correct_answer: string or array of accepted short answers, usually 1 to 5 words.
    - wrong_answers: [] (empty).
-   - time_limit: 30.
+   - hint: one short clue shown above the question, not the answer.
+   - time_limit: 20.
 
-4. Spell "mcq" exactly — never "mcp" or "multiple_choice".
-5. No duplicate cards or questions.
-6. Return valid JSON only.`.trim();
+5. Every question must include a non-empty hint.
+6. Spell "mcq" exactly - never "mcp" or "multiple_choice".
+7. No duplicate cards or questions.
+8. Return valid JSON only.`.trim();
 }
-
 async function generateWithGroq(
-  deck: { title: string; description: string | null; source_text: string },
+  deck: { title: string; source_text: string },
   isRetry = false,
 ): Promise<GeneratedDeckContent> {
   const apiKey = getRequiredEnv("GROQ_API_KEY");
@@ -416,13 +468,14 @@ async function generateWithGroq(
 
   const generated = validateGeneratedContent(parseJsonContent(content));
 
-  // Retry once if the AI returned only MCQ for a reasonably-sized deck
-  if (!isRetry && generated.questions.length >= 5) {
-    const types = new Set(generated.questions.map((q) => q.type));
-    if (types.size === 1 && types.has("mcq")) {
-      console.warn("AI returned only MCQ questions. Retrying with stronger diversity prompt…");
+  const diversityIssue = getQuestionDiversityIssue(generated.questions);
+  if (diversityIssue) {
+    if (!isRetry) {
+      console.warn(`${diversityIssue} Retrying with stronger diversity prompt...`);
       return generateWithGroq(deck, true);
     }
+
+    throw new Error(diversityIssue);
   }
 
   return generated;
@@ -472,7 +525,7 @@ Deno.serve(async (request) => {
 
     const { data: deck, error: deckError } = await adminClient
       .from("decks")
-      .select("id, owner_id, title, description, source_type, source_text")
+      .select("id, owner_id, title, source_type, source_text")
       .eq("id", deckId)
       .maybeSingle();
 
@@ -495,7 +548,6 @@ Deno.serve(async (request) => {
 
     const generated = await generateWithGroq({
       title: deck.title,
-      description: deck.description,
       source_text: deck.source_text.trim(),
     });
 
@@ -525,6 +577,7 @@ Deno.serve(async (request) => {
         question: question.question,
         correct_answer: question.correct_answer,
         wrong_answers: question.wrong_answers,
+        hint: question.hint,
         difficulty: question.difficulty,
         time_limit: question.time_limit,
       })),
@@ -534,7 +587,11 @@ Deno.serve(async (request) => {
 
     await adminClient
       .from("decks")
-      .update({ status: "Ready", generation_error: null })
+      .update({
+        status: "Ready",
+        generation_error: null,
+        description: generated.description,
+      })
       .eq("id", deckId);
 
     await adminClient.from("notifications").insert({

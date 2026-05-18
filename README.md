@@ -50,6 +50,26 @@ Users can:
 - **Collaborative study decks** — Invite friends to collaborate and study together on shared decks.
 - **Consistent pastel UI system** — Carefully designed mobile-first UI with reusable components and a cohesive visual language.
 
+## Demo
+
+<p align="center">
+  <img src="./docs/demo/onboarding.png" width="30%" />
+  <img src="./docs/demo/register.png" width="30%" />
+  <img src="./docs/demo/home.png" width="30%" />
+</p>
+
+<p align="center">
+  <img src="./docs/demo/library.png" width="30%" />
+  <img src="./docs/demo/deck.png" width="30%" />
+  <img src="./docs/demo/profile.png" width="30%" />
+</p>
+
+<p align="center">
+  <img src="./docs/demo/quiz-1.png" width="30%" />
+  <img src="./docs/demo/quiz-2.png" width="30%" />
+  <img src="./docs/demo/quiz-result.png" width="30%" />
+</p>
+
 ## Tech Stack
 
 ### Core

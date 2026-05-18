@@ -6,33 +6,55 @@ import { AppText } from "./AppText";
 
 type AppInputProps = ComponentProps<typeof TextInput> & {
   label?: string;
+  description?: string;
+  isRequired?: boolean;
   error?: string;
   className?: string;
   inputClassName?: string;
   labelClassName?: string;
   errorClassName?: string;
+  descriptionClassName?: string;
 };
 
 export function AppInput({
   label,
+  description,
+  isRequired = false,
   error,
   className,
   inputClassName,
   labelClassName,
   errorClassName,
+  descriptionClassName,
   placeholderTextColor = "#9B918D",
   ...props
 }: AppInputProps) {
   return (
     <View className={cn("gap-2", className)}>
       {label ? (
-        <AppText
-          variant="caption"
-          className={cn("font-sans-medium text-text", labelClassName)}
-        >
-          {label}
-        </AppText>
+        <View className="flex-row items-center gap-2">
+          <AppText
+            variant="caption"
+            className={cn("font-sans-medium text-text", labelClassName)}
+          >
+            {label}
+            {isRequired ? <AppText className="text-danger"> *</AppText> : null}
+          </AppText>
+
+          {description ? (
+            <AppText
+              variant="caption"
+              className={cn(
+                "text-muted-foreground text-xs ml-auto",
+                descriptionClassName,
+              )}
+            >
+              {description}
+            </AppText>
+          ) : null}
+        </View>
       ) : null}
+
       <TextInput
         placeholderTextColor={placeholderTextColor}
         className={cn(
@@ -42,6 +64,7 @@ export function AppInput({
         )}
         {...props}
       />
+
       {error ? (
         <AppText
           variant="caption"

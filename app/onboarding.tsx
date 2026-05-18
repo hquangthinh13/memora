@@ -14,12 +14,12 @@ export default function OnboardingScreen() {
   if (session) return <Redirect href="/(tabs)" />;
 
   return (
-    <Screen scroll contentClassName="justify-center gap-10">
+    <Screen scroll contentClassName="flex-1 justify-center gap-10">
       <StatusBar style="dark" />
 
       {/* Illustration */}
       <View className="items-center">
-        <View className="h-64 w-64 items-center justify-center rounded-lg bg-mint-soft">
+        <View className="h-64 w-64 items-center justify-center">
           <Image
             source={Images.floral01}
             style={{ width: 210, height: 210 }}
@@ -34,8 +34,8 @@ export default function OnboardingScreen() {
           Memora
         </AppText>
         <AppText variant="body" className="text-center text-text-muted">
-          Friendly flashcards, study rooms, and playful progress for language
-          learners.
+          Learn any topic faster with AI-generated flashcards and practice
+          questions created from your notes.
         </AppText>
       </View>
 
@@ -47,4 +47,3 @@ export default function OnboardingScreen() {
     </Screen>
   );
 }
-

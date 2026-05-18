@@ -11,11 +11,17 @@ export function NavLink({
   href,
   title,
   variant = "secondary",
+  className,
   ...props
 }: NavLinkProps) {
   return (
     <Link href={href} asChild>
-      <AppButton title={title} variant={variant} {...props} />
+      <AppButton
+        title={title}
+        variant={variant}
+        className={className}
+        {...props}
+      />
     </Link>
   );
 }

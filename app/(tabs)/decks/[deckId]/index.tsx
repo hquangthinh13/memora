@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Image, PanResponder, Pressable, View } from "react-native";
+import { Animated, Image, PanResponder, ScrollView, View } from "react-native";
 import {
   Add01Icon,
   BookOpen02Icon,
@@ -317,10 +317,8 @@ export default function DeckDetailScreen() {
       scroll
       contentClassName="pb-32"
     >
-      {loading ? (
-        <LoadingState label="Loading deck..." />
-      ) : null}
-      {error ? (
+      {loading ? <LoadingState label="Loading deck..." /> : null}
+      {/* {error ? (
         <AppText variant="caption" className="text-center text-danger">
           {error}
         </AppText>
@@ -339,12 +337,11 @@ export default function DeckDetailScreen() {
         <AppText variant="caption" className="text-center text-danger">
           {deleteWarning}
         </AppText>
-      ) : null}
+      ) : null} */}
 
       {deck ? (
         <>
           <View className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-            <View className="h-1.5 w-full bg-mint" />
             {coverUrl ? (
               <Image
                 source={{ uri: coverUrl }}
@@ -353,31 +350,37 @@ export default function DeckDetailScreen() {
             ) : (
               <PastelImageFallback title={deck.title} className="h-56" />
             )}
+          </View>
+          <View className="gap-1">
+            <AppText variant="title">{deck.title}</AppText>
+            <AppText variant="body" className="text-text-muted">
+              {deck.description ?? "No description yet."}
+            </AppText>
+          </View>
+          <View className="gap-3 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              {deck.topics?.name ? (
+                <View className="self-start rounded-full bg-mint-soft px-3 py-1">
+                  <AppText
+                    variant="caption"
+                    className="font-sans-medium text-text"
+                  >
+                    {deck.topics.name}
+                  </AppText>
+                </View>
+              ) : null}
 
-            <View className="gap-3 p-card">
-              <View className="gap-1">
-                <AppText variant="title">{deck.title}</AppText>
-                <AppText variant="body" className="text-text-muted">
-                  {deck.description ?? "No description yet."}
+              <View className="rounded-full border border-border bg-surface-soft px-3 py-1 self-start">
+                <AppText
+                  variant="caption"
+                  className="font-sans-semibold text-text"
+                >
+                  {deck.status}
                 </AppText>
               </View>
             </View>
-          </View>
-
-          <View className="gap-3">
-            {deck.topics?.name ? (
-              <View className="self-start rounded-full bg-mint-soft px-3 py-1">
-                <AppText
-                  variant="caption"
-                  className="font-sans-medium text-text"
-                >
-                  {deck.topics.name}
-                </AppText>
-              </View>
-            ) : null}
-
-            <View className="flex-row items-center justify-between gap-3">
-              <View className="flex-1 flex-row flex-wrap items-center gap-2">
+            <View className="flex-row items-center justify-between gap-3 ml-auto">
+              <View className="flex-row flex-wrap items-center gap-2">
                 <MetaPill icon={BookOpen02Icon} label={`${deck.card_count}`} />
                 <MetaPill
                   icon={Quiz02Icon}
@@ -394,12 +397,6 @@ export default function DeckDetailScreen() {
                 )}
                 maxVisible={2}
               />
-            </View>
-
-            <View className="rounded-full border border-border bg-surface-soft px-3 py-1 self-start">
-              <AppText variant="caption" className="font-sans-semibold text-text">
-                {deck.status}
-              </AppText>
             </View>
 
             {deck.generation_error ? (
@@ -474,61 +471,44 @@ export default function DeckDetailScreen() {
                   description="Invite friends to view or edit this deck."
                 />
               ) : (
-                acceptedCollaborators.map((c) => (
-                  <AppCard key={c.id} className="rounded-lg">
-                    <View className="flex-row items-center gap-3">
-                      {c.profile?.avatar_url ? (
-                        <Image
-                          source={{ uri: c.profile.avatar_url }}
-                          className="size-12 rounded-lg bg-surface-soft"
-                        />
-                      ) : (
-                        <View className="size-12 items-center justify-center rounded-lg bg-lavender-soft">
-                          <AppText variant="subtitle">
-                            {(
-                              c.profile?.display_name ??
-                              c.profile?.email ??
-                              "U"
-                            )
-                              .slice(0, 1)
-                              .toUpperCase()}
-                          </AppText>
-                        </View>
-                      )}
-                      <View className="flex-1 gap-0.5">
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerClassName="gap-4 px-1"
+                >
+                  {acceptedCollaborators.map((c) => {
+                    const name =
+                      c.profile?.display_name ?? c.profile?.email ?? "User";
+                    const initial = name.slice(0, 1).toUpperCase();
+
+                    return (
+                      <View key={c.id} className="w-20 items-center gap-2">
+                        {c.profile?.avatar_url ? (
+                          <Image
+                            source={{ uri: c.profile.avatar_url }}
+                            className="size-16 rounded-full bg-surface-soft"
+                          />
+                        ) : (
+                          <View className="size-16 items-center justify-center rounded-full bg-lavender-soft">
+                            <AppText variant="subtitle">{initial}</AppText>
+                          </View>
+                        )}
+
                         <AppText
-                          variant="body"
-                          className="font-sans-semibold"
+                          variant="caption"
+                          className="text-center font-sans-medium text-text"
                           numberOfLines={1}
                         >
-                          {c.profile?.display_name ??
-                            c.profile?.email ??
-                            "User"}
+                          {name}
                         </AppText>
-                        <MetaPill
-                          icon={UserGroupIcon}
-                          label={`${c.role} � ${c.status}`}
-                        />
                       </View>
-                      {canManageDeck && c.role !== "owner" ? (
-                        <AppButton
-                          layout="icon-only"
-                          icon={MoreHorizontalIcon}
-                          variant="ghost"
-                          className="h-10 w-10 min-h-10 rounded-full"
-                          onPress={() => {
-                            setActiveCollaboratorId(c.id);
-                            setCollaboratorActionOpen(true);
-                          }}
-                        />
-                      ) : null}
-                    </View>
-                  </AppCard>
-                ))
+                    );
+                  })}
+                </ScrollView>
               )}
             </View>
           ) : null}
-
+          {/* 
           <View className="gap-3">
             <AppText variant="subtitle">Cards</AppText>
             {isPreparing ? (
@@ -631,7 +611,7 @@ export default function DeckDetailScreen() {
                 description="Add the first card for this deck."
               />
             ) : null}
-          </View>
+          </View> */}
 
           {!canManageDeck && deck.permission !== "owner" ? (
             <AppButton

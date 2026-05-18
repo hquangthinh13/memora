@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 import { CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
-
+import { View } from "react-native";
 import {
   AppButton,
   AppText,
@@ -49,7 +49,10 @@ export default function NotificationsScreen() {
 
     const metadata = parseNotificationMetadata(item.metadata);
 
-    if (item.type === "friend_request" || item.type === "friend_request_accepted") {
+    if (
+      item.type === "friend_request" ||
+      item.type === "friend_request_accepted"
+    ) {
       router.push("/friends");
       return;
     }
@@ -96,8 +99,13 @@ export default function NotificationsScreen() {
       ) : (
         <>
           {unread.length > 0 ? (
-            <>
-              <AppText variant="subtitle">Unread ({unread.length})</AppText>
+            <View className="gap-2">
+              <View className="flex-row items-center gap-2 justify-between mb-1">
+                <AppText variant="subtitle">Unread</AppText>
+                <AppText variant="subtitle" className="text-text-muted">
+                  ({unread.length})
+                </AppText>
+              </View>
               {unread.map((item) => (
                 <NotificationItem
                   key={item.id}
@@ -110,12 +118,17 @@ export default function NotificationsScreen() {
                   }}
                 />
               ))}
-            </>
+            </View>
           ) : null}
 
           {read.length > 0 ? (
-            <>
-              <AppText variant="subtitle">Read ({read.length})</AppText>
+            <View className="gap-2">
+              <View className="flex-row items-center gap-2 justify-between mb-1">
+                <AppText variant="subtitle">Read</AppText>
+                <AppText variant="subtitle" className="text-text-muted">
+                  ({read.length})
+                </AppText>
+              </View>
               {read.map((item) => (
                 <NotificationItem
                   key={item.id}
@@ -128,7 +141,7 @@ export default function NotificationsScreen() {
                   }}
                 />
               ))}
-            </>
+            </View>
           ) : null}
         </>
       )}

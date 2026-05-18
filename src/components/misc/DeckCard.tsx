@@ -4,21 +4,13 @@ import {
   BookOpen01Icon,
   HelpCircleIcon,
   UserGroupIcon,
-  Tag01Icon,
 } from "@hugeicons/core-free-icons";
 import { Image, TouchableOpacity, View } from "react-native";
 
 import { cn } from "@/lib/cn";
-import type {
-  CollaboratorPreviewProfile,
-  DeckSummary,
-} from "@/services/decks";
+import type { CollaboratorPreviewProfile, DeckSummary } from "@/services/decks";
 import { AppText } from "@/components/shared";
-import {
-  AvatarStack,
-  MetaPill,
-  PastelImageFallback,
-} from "@/components/decks";
+import { AvatarStack, MetaPill, PastelImageFallback } from "@/components/decks";
 
 export type DeckCardData = {
   id: string;
@@ -40,9 +32,7 @@ type DeckCardProps = {
   className?: string;
 };
 
-function toDeckCardData(
-  deck: DeckCardData | DeckSummary,
-): DeckCardData {
+function toDeckCardData(deck: DeckCardData | DeckSummary): DeckCardData {
   const withDefaults = deck as Partial<DeckCardData>;
 
   return {
@@ -71,7 +61,8 @@ function toDeckCardData(
 export function DeckCard({ deck, href, className }: DeckCardProps) {
   const data = toDeckCardData(deck);
   const coverUrl = data.cover_image_url ?? data.cover_url;
-  const shouldShowStatus = data.status === "Preparing" || data.status === "Failed";
+  const shouldShowStatus =
+    data.status === "Preparing" || data.status === "Failed";
   const statusClassName =
     data.status === "Failed"
       ? "border-danger/30 bg-pink-soft"
@@ -103,7 +94,9 @@ export function DeckCard({ deck, href, className }: DeckCardProps) {
               {data.title}
             </AppText>
             {shouldShowStatus ? (
-              <View className={cn("rounded-lg border px-2 py-1", statusClassName)}>
+              <View
+                className={cn("rounded-lg border px-2 py-1", statusClassName)}
+              >
                 <AppText
                   variant="caption"
                   className="font-sans-semibold text-text"
@@ -113,27 +106,24 @@ export function DeckCard({ deck, href, className }: DeckCardProps) {
               </View>
             ) : null}
           </View>
-          {/* <AppText
+          <AppText
             variant="caption"
             className="text-text-muted"
             numberOfLines={2}
           >
             {data.description ?? "No description yet."}
-          </AppText> */}
+          </AppText>
         </View>
 
         <View className="flex-row items-center justify-between gap-3">
-          {/* {data.topics?.name ? (
-            <View className="self-start rounded-full bg-mint-soft px-3 py-1">
+          {data.topics?.name ? (
+            <View className="self-start rounded-full bg-pink-soft border border-pink px-3 py-1">
               <AppText variant="caption" className="font-sans-medium text-text">
                 {data.topics.name}
               </AppText>
             </View>
-          ) : null} */}
-          <View className="flex-1 flex-row flex-wrap items-center gap-2">
-            {data.topics?.name ? (
-              <MetaPill icon={Tag01Icon} label={`${data.topics.name}`} />
-            ) : null}
+          ) : null}
+          <View className="ml-auto flex-row flex-wrap items-center gap-2">
             <MetaPill icon={BookOpen01Icon} label={`${data.card_count}`} />
             {typeof data.question_count === "number" ? (
               <MetaPill

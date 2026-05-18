@@ -1,4 +1,4 @@
-import { Redirect, useRouter } from "expo-router";
+import { Link, Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import { Image } from "expo-image";
 import { View } from "react-native";
@@ -12,10 +12,7 @@ import {
   Screen,
 } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  getAuthErrorMessage,
-  signInWithEmail,
-} from "@/services/auth";
+import { getAuthErrorMessage, signInWithEmail } from "@/services/auth";
 import Images from "@/constants/images";
 
 export default function LoginScreen() {
@@ -44,17 +41,12 @@ export default function LoginScreen() {
   }
 
   return (
-    <Screen
-      scroll
-      header={
-        <NavLink href="/onboarding" title="Back" variant="ghost" />
-      }
-    >
+    <Screen scroll contentClassName="flex-grow items-center justify-center">
       {/* Illustration */}
-      <View className="items-center py-2">
-        <View className="h-44 w-44 items-center justify-center rounded-lg bg-lavender-soft">
+      <View className="items-center ">
+        <View className="h-44 w-44 items-center justify-center">
           <Image
-            source={Images.floral01}
+            source={Images.floral03}
             style={{ width: 130, height: 130 }}
             contentFit="contain"
           />
@@ -62,15 +54,17 @@ export default function LoginScreen() {
       </View>
 
       {/* Heading */}
-      <View className="gap-2">
-        <AppText variant="title">Welcome back</AppText>
-        <AppText variant="body" className="text-text-muted">
+      <View className="gap-2 justify-center w-full">
+        <AppText variant="title" className="w-full text-center">
+          Welcome back
+        </AppText>
+        <AppText variant="body" className="text-text-muted w-full text-center">
           Log in to sync your decks and study progress.
         </AppText>
       </View>
 
       {/* Form */}
-      <AppCard className="gap-4">
+      <AppCard className="gap-4 w-full">
         <AppInput
           label="Email"
           placeholder="you@example.com"
@@ -96,12 +90,22 @@ export default function LoginScreen() {
           variant="primary"
           disabled={submitting}
           onPress={handleEmailLogin}
+          className="mt-4"
         />
       </AppCard>
 
       {/* Footer */}
-      <NavLink href="/register" title="New here? Create an account" variant="ghost" />
+      <View className="flex-row items-center w-full justify-center">
+        <AppText variant="body" className="text-text-muted">
+          Don't have an account?{" "}
+        </AppText>
+        <Link
+          href="/register"
+          className="font-sans text-base leading-6 text-text active:text-pink"
+        >
+          Create an account
+        </Link>
+      </View>
     </Screen>
   );
 }
-

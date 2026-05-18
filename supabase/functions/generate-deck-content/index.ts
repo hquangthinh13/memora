@@ -5,6 +5,8 @@ type GenerateRequestBody = {
   deck_id?: string;
 };
 
+type GenerationQuestionType = "mcq" | "true_false";
+
 type GeneratedCard = {
   front: string;
   back: string;
@@ -14,7 +16,7 @@ type GeneratedCard = {
 };
 
 type GeneratedQuestion = {
-  type: "mcq" | "fill_in_the_blank" | "true_false" | "short_answer";
+  type: GenerationQuestionType;
   question: string;
   correct_answer: string | string[];
   wrong_answers: string[];
@@ -103,8 +105,6 @@ function getDefaultTimeLimit(type: string): number {
   switch (type) {
     case "true_false": return 10;
     case "mcq": return 15;
-    case "fill_in_the_blank": return 20;
-    case "short_answer": return 20;
     default: return 15;
   }
 }
@@ -123,17 +123,31 @@ function normalizeTrueFalseAnswer(value: unknown): "True" | "False" | null {
   return null;
 }
 
-function getQuestionDiversityIssue(questions: GeneratedQuestion[]): string | null {
-  if (questions.length < 4) return null;
+function normalizeGenerationQuestionTypes(value: unknown): GenerationQuestionType[] {
+  const fallback: GenerationQuestionType[] = ["mcq", "true_false"];
+  if (!Array.isArray(value)) return fallback;
 
-  const requiredTypes = ["mcq", "true_false", "fill_in_the_blank", "short_answer"] as const;
+  const normalized = value
+    .map((item) => (typeof item === "string" ? normalizeType(item) : null))
+    .filter((item): item is GenerationQuestionType => item === "mcq" || item === "true_false")
+    .filter((item, index, items) => items.indexOf(item) === index);
+
+  return normalized.length ? normalized : fallback;
+}
+
+function getQuestionDiversityIssue(
+  questions: GeneratedQuestion[],
+  allowedTypes: GenerationQuestionType[],
+): string | null {
+  if (allowedTypes.length < 2 || questions.length < 2) return null;
+
   const counts = new Map<string, number>();
 
   for (const question of questions) {
     counts.set(question.type, (counts.get(question.type) ?? 0) + 1);
   }
 
-  const missing = requiredTypes.filter((type) => !counts.has(type));
+  const missing = allowedTypes.filter((type) => !counts.has(type));
   if (missing.length) {
     return `AI response must include ${missing.join(", ")} questions.`;
   }
@@ -155,7 +169,42 @@ function hasShortAnswerShape(value: string): boolean {
   return value.trim().split(/\s+/).filter(Boolean).length <= 5;
 }
 
-function validateGeneratedContent(value: unknown): GeneratedDeckContent {
+function firstShortAnswer(value: string): string {
+  return value
+    .trim()
+    .replace(/[.;:!?].*$/, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 5)
+    .join(" ");
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function ensureBlankMarker(questionText: string, correctAnswer: string | string[]) {
+  if (/_{2,}/.test(questionText)) return questionText;
+
+  const answers = answerTextValues(correctAnswer)
+    .map((answer) => answer.trim())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+
+  for (const answer of answers) {
+    const pattern = new RegExp(`\\b${escapeRegExp(answer)}\\b`, "i");
+    if (pattern.test(questionText)) {
+      return questionText.replace(pattern, "____");
+    }
+  }
+
+  return `${questionText} Answer: ____`;
+}
+
+function validateGeneratedContent(
+  value: unknown,
+  allowedTypes: GenerationQuestionType[],
+): GeneratedDeckContent {
   if (!value || typeof value !== "object") {
     throw new Error("AI response must be a JSON object.");
   }
@@ -184,19 +233,19 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
     };
   });
 
-  const VALID_TYPES = ["mcq", "fill_in_the_blank", "true_false", "short_answer"] as const;
-
   const questions = questionsInput.map((question: unknown, i: number) => {
     const q = question as Record<string, unknown>;
 
     const rawType = asNonEmptyString(q?.type, `question[${i}].type`);
-    const type = normalizeType(rawType);
+    let type = normalizeType(rawType);
 
-    if (!VALID_TYPES.includes(type as typeof VALID_TYPES[number])) {
-      throw new Error(`Unsupported question type: "${type}" (question ${i + 1}).`);
+    if (!allowedTypes.includes(type as GenerationQuestionType)) {
+      throw new Error(
+        `Unsupported question type: "${type}". Allowed types: ${allowedTypes.join(", ")} (question ${i + 1}).`,
+      );
     }
 
-    const questionText = asNonEmptyString(q?.question, `question[${i}].question`);
+    let questionText = asNonEmptyString(q?.question, `question[${i}].question`);
     const hint = asNonEmptyString(q?.hint, `question[${i}].hint`);
     const difficulty = asDifficulty(q?.difficulty);
 
@@ -250,20 +299,11 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
       }
 
     } else {
-      if (!/_{2,}/.test(questionText)) {
-        throw new Error(
-          `${type} question must contain "____" as a blank marker (question ${i + 1}).`,
-        );
-      }
-      correct_answer = asCorrectAnswer(q?.correct_answer);
-      if (type === "short_answer" && !answerTextValues(correct_answer).every(hasShortAnswerShape)) {
-        throw new Error(`short_answer correct answers must be short, usually 1 to 5 words (question ${i + 1}).`);
-      }
-      wrong_answers = [];
+      throw new Error(`Unsupported question type: "${type}" (question ${i + 1}).`);
     }
 
     return {
-      type: type as typeof VALID_TYPES[number],
+      type: type as GenerationQuestionType,
       question: questionText,
       correct_answer,
       wrong_answers,
@@ -277,35 +317,59 @@ function validateGeneratedContent(value: unknown): GeneratedDeckContent {
 }
 
 function buildPrompt(
-  deck: { topic_name: string; topic_description: string | null; source_text: string },
+  deck: {
+    topic_name: string;
+    topic_description: string | null;
+    source_text: string;
+    generation_question_types: GenerationQuestionType[];
+  },
   isRetry = false,
 ): string {
   const sourceLength = deck.source_text.length;
-  const cardTarget = sourceLength > 5000 ? "20 to 30" : sourceLength > 1500 ? "12 to 20" : "10 to 14";
-  const questionTarget = sourceLength > 5000 ? "12 to 20" : sourceLength > 1500 ? "8 to 14" : "5 to 8";
+  const cardTarget = sourceLength > 5000 ? "20 to 30" : sourceLength > 1500 ? "12 to 20" : sourceLength > 80 ? "10 to 14" : "4 to 6";
+  const questionTarget = sourceLength > 5000 ? "12 to 20" : sourceLength > 1500 ? "8 to 14" : sourceLength > 80 ? "5 to 8" : "4";
+  const typeLabels = deck.generation_question_types
+    .map((type) => (type === "mcq" ? "mcq" : "true_false"))
+    .join(", ");
+  const questionExamples = deck.generation_question_types.map((type) => {
+    if (type === "mcq") {
+      return `    {
+      "type": "mcq",
+      "question": "Which organelle is the powerhouse of the cell?",
+      "correct_answer": "Mitochondria",
+      "wrong_answers": ["Nucleus", "Ribosome", "Golgi apparatus"],
+      "hint": "Think of the organelle that makes energy for the cell.",
+      "difficulty": 1,
+      "time_limit": 15
+    }`;
+    }
 
-  let diversityRule: string;
-  if (sourceLength <= 1500) {
-    diversityRule = `- Generate ${questionTarget} questions.
-- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
-- Use at least 1 question of each supported type.
-- No single type should make up more than 60% of the total.`;
-  } else if (sourceLength <= 5000) {
-    diversityRule = `- Generate ${questionTarget} questions.
-- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
-- Aim for: MCQ ~30%, true_false ~25%, fill_in_the_blank ~25%, short_answer ~20%.
-- No single type should exceed 60% of the total.`;
-  } else {
-    diversityRule = `- Generate ${questionTarget} questions.
-- Include all 4 supported question types: mcq, true_false, fill_in_the_blank, and short_answer.
-- Aim for a balanced distribution across the four types.
-- No single type should exceed 60% of the total.`;
-  }
+    return `    {
+      "type": "true_false",
+      "question": "DNA is stored in the nucleus of eukaryotic cells.",
+      "correct_answer": "True",
+      "wrong_answers": ["False"],
+      "hint": "Focus on where genetic material is kept in eukaryotic cells.",
+      "difficulty": 1,
+      "time_limit": 10
+    }`;
+  }).join(",\n");
+
+  const diversityRule = deck.generation_question_types.length === 1
+    ? `- Generate ${questionTarget} questions.
+- Generate ONLY this question type: ${typeLabels}.
+- Do not generate fill_in_the_blank or short_answer questions.`
+    : `- Generate ${questionTarget} questions.
+- Generate ONLY these question types: ${typeLabels}.
+- Include at least 1 mcq question and at least 1 true_false question when generating 2 or more questions.
+- Keep the distribution balanced; no single type should exceed 60% of the total.
+- Do not generate fill_in_the_blank or short_answer questions.`;
 
   const retryWarning = isRetry
-    ? `\nCRITICAL: Your previous attempt did not include enough question type diversity.
-You MUST include mcq, true_false, fill_in_the_blank, and short_answer questions.
-Outputting mostly or only MCQ will cause this generation to fail entirely.\n`
+    ? `\nCRITICAL: Your previous attempt failed validation.
+Return the exact JSON shape, include title, description, cards, and questions.
+Every question MUST include a non-empty hint.
+Only generate these question types: ${typeLabels}.\n`
     : "";
 
   return `You are a quiz content generator for a mobile study app.
@@ -331,42 +395,7 @@ JSON shape:
     }
   ],
   "questions": [
-    {
-      "type": "mcq",
-      "question": "Which organelle is the powerhouse of the cell?",
-      "correct_answer": "Mitochondria",
-      "wrong_answers": ["Nucleus", "Ribosome", "Golgi apparatus"],
-      "hint": "Think of the organelle that makes energy for the cell.",
-      "difficulty": 1,
-      "time_limit": 15
-    },
-    {
-      "type": "true_false",
-      "question": "DNA is stored in the nucleus of eukaryotic cells.",
-      "correct_answer": "True",
-      "wrong_answers": ["False"],
-      "hint": "Focus on where genetic material is kept in eukaryotic cells.",
-      "difficulty": 1,
-      "time_limit": 10
-    },
-    {
-      "type": "fill_in_the_blank",
-      "question": "The ____ is responsible for producing ATP in the cell.",
-      "correct_answer": ["mitochondria", "mitochondrion"],
-      "wrong_answers": [],
-      "hint": "This is the cell's energy-producing organelle.",
-      "difficulty": 2,
-      "time_limit": 20
-    },
-    {
-      "type": "short_answer",
-      "question": "DNA replication creates two ____ DNA strands.",
-      "correct_answer": ["identical", "matching"],
-      "wrong_answers": [],
-      "hint": "The new strands should match each other.",
-      "difficulty": 2,
-      "time_limit": 20
-    }
+${questionExamples}
   ]
 }
 
@@ -409,28 +438,19 @@ ${diversityRule}
    - hint: one short clue, not the answer.
    - time_limit: 10.
 
-   fill_in_the_blank
-   - A sentence with a key term replaced by ____ (exactly four underscores).
-   - The question string MUST contain ____.
-   - correct_answer: array of accepted answers/synonyms.
-   - wrong_answers: [] (empty).
-   - hint: one short clue, not the answer.
-   - time_limit: 20.
-
-   short_answer
-   - Cloze-style short recall only; it must contain ____ like fill_in_the_blank.
-   - correct_answer: string or array of accepted short answers, usually 1 to 5 words.
-   - wrong_answers: [] (empty).
-   - hint: one short clue shown above the question, not the answer.
-   - time_limit: 20.
-
 6. Every question must include a non-empty hint.
 7. Spell "mcq" exactly - never "mcp" or "multiple_choice".
-8. No duplicate cards or questions.
-9. Return valid JSON only.`.trim();
+8. Never generate "fill_in_the_blank" or "short_answer" in this MVP.
+9. No duplicate cards or questions.
+10. Return valid JSON only.`.trim();
 }
 async function generateWithGroq(
-  deck: { topic_name: string; topic_description: string | null; source_text: string },
+  deck: {
+    topic_name: string;
+    topic_description: string | null;
+    source_text: string;
+    generation_question_types: GenerationQuestionType[];
+  },
   isRetry = false,
 ): Promise<GeneratedDeckContent> {
   const apiKey = getRequiredEnv("GROQ_API_KEY");
@@ -475,9 +495,19 @@ async function generateWithGroq(
     throw new Error("Groq response did not include message content.");
   }
 
-  const generated = validateGeneratedContent(parseJsonContent(content));
+  let generated: GeneratedDeckContent;
+  try {
+    generated = validateGeneratedContent(parseJsonContent(content), deck.generation_question_types);
+  } catch (error) {
+    if (!isRetry) {
+      console.warn("AI response failed validation. Retrying with stricter prompt.", error);
+      return generateWithGroq(deck, true);
+    }
 
-  const diversityIssue = getQuestionDiversityIssue(generated.questions);
+    throw error;
+  }
+
+  const diversityIssue = getQuestionDiversityIssue(generated.questions, deck.generation_question_types);
   if (diversityIssue) {
     if (!isRetry) {
       console.warn(`${diversityIssue} Retrying with stronger diversity prompt...`);
@@ -534,7 +564,7 @@ Deno.serve(async (request) => {
 
     const { data: deck, error: deckError } = await adminClient
       .from("decks")
-      .select("id, owner_id, title, source_type, source_text, topic_id")
+      .select("id, owner_id, title, source_type, source_text, topic_id, generation_question_types")
       .eq("id", deckId)
       .maybeSingle();
 
@@ -549,6 +579,7 @@ Deno.serve(async (request) => {
     if (typeof deck.source_text !== "string" || !deck.source_text.trim()) {
       throw new Error("Deck source_text is required for generation.");
     }
+    const generationQuestionTypes = normalizeGenerationQuestionTypes(deck.generation_question_types);
 
     await adminClient
       .from("decks")
@@ -574,6 +605,7 @@ Deno.serve(async (request) => {
       topic_name: topicName,
       topic_description: topicDescription,
       source_text: deck.source_text.trim(),
+      generation_question_types: generationQuestionTypes,
     });
 
     await adminClient.from("questions").delete().eq("deck_id", deckId);

@@ -233,6 +233,7 @@ export async function createDeck(deck: Inserts<"decks">) {
     source_file_path: payload.source_file_path ?? null,
     status: payload.status ?? "Ready",
     generation_error: payload.generation_error ?? null,
+    generation_question_types: payload.generation_question_types ?? ["mcq", "true_false"],
     is_archived: payload.is_archived ?? false,
     created_at: payload.created_at ?? now,
     updated_at: payload.updated_at ?? now,

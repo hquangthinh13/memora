@@ -2,16 +2,16 @@
 
 # Memora: AI-powered Flashcards & Quizzes
 
-<table>
-<tr>
+<table style="border: none;">
+<tr style="border: none;">
 
-<td>
+<td style="border: none;">
 
 Memora is an AI-powered mobile learning app that transforms users’ notes and study materials into interactive flashcards and quizzes.
 
 Designed to make studying more engaging and collaborative, Memora helps learners organize knowledge into decks, review concepts efficiently, and build consistent learning habits through smart study experiences.
 
-</td><td>
+</td><td style="border: none;">
 
 <img src="./docs/floral-01.svg" width="360"/>
 
@@ -19,14 +19,14 @@ Designed to make studying more engaging and collaborative, Memora helps learners
 </tr>
 </table>
 
-<table>
-<tr>
-<td>
+<table style="border: none;">
+<tr style="border: none;">
+<td style="border: none;">
 
 <img src="./docs/floral-02.svg" width="140"/>
 
 </td>
-<td>
+<td style="border: none;">
 
 Users can:
 

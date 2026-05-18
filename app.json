@@ -22,7 +22,9 @@
       },
       "package": "com.memora.memora",
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,7 +41,8 @@
       ],
       "expo-image-picker",
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-audio"
     ],
     "extra": {
       "router": {},

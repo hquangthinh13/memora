@@ -38,16 +38,17 @@ const QUESTION_TYPE_OPTIONS: {
   },
 ];
 
+const DEFAULT_QUESTION_TYPES: GenerationQuestionType[] = ["mcq", "true_false"];
+
 export default function CreateDeckScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [topicId, setTopicId] = useState<string | null>(null);
   const [sourceText, setSourceText] = useState("");
   const [selectedCoverUri, setSelectedCoverUri] = useState<string | null>(null);
-  const [questionTypes, setQuestionTypes] = useState<GenerationQuestionType[]>([
-    "mcq",
-    "true_false",
-  ]);
+  const [questionTypes, setQuestionTypes] = useState<GenerationQuestionType[]>(
+    DEFAULT_QUESTION_TYPES,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,6 +63,14 @@ export default function CreateDeckScreen() {
 
       return [...current, type];
     });
+  }
+
+  function resetForm() {
+    setTopicId(null);
+    setSourceText("");
+    setSelectedCoverUri(null);
+    setQuestionTypes(DEFAULT_QUESTION_TYPES);
+    setError(null);
   }
 
   async function handleSave() {
@@ -109,6 +118,7 @@ export default function CreateDeckScreen() {
         generation_error: null,
         generation_question_types: questionTypes,
       });
+      resetForm();
       router.replace(`/decks/${deck.id}?generate=1`);
     } catch (caught) {
       setError(getErrorMessage(caught, "Could not save deck."));

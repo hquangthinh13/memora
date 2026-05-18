@@ -58,6 +58,7 @@ export type Database = {
           source_file_path: string | null;
           status: "Preparing" | "Ready" | "Failed";
           generation_error: string | null;
+          generation_question_types: ("mcq" | "true_false")[];
           is_archived: boolean;
           created_at: string;
           updated_at: string;
@@ -80,6 +81,7 @@ export type Database = {
           source_file_path?: string | null;
           status?: "Preparing" | "Ready" | "Failed";
           generation_error?: string | null;
+          generation_question_types?: ("mcq" | "true_false")[];
           is_archived?: boolean;
           created_at?: string;
           updated_at?: string;

@@ -21,13 +21,6 @@ export type DeckSummary = Deck & {
   collaborators: CollaboratorPreviewProfile[];
   topics?: Pick<Topic, "id" | "name"> | null;
 };
-export type PublishedDeckSummary = Deck & {
-  card_count: number;
-  question_count: number;
-  collaborator_count: number;
-  collaborators: CollaboratorPreviewProfile[];
-  topics?: Pick<Topic, "id" | "name"> | null;
-};
 export type DeckWithCards = Deck & {
   cards: Card[];
   questions?: Pick<Question, "id">[];
@@ -51,10 +44,6 @@ type DeckListRow = Deck & {
   deck_collaborators?: DeckCollaborator[];
 };
 
-export type FriendPublishedDeckGroup = {
-  owner_id: string;
-  decks: PublishedDeckSummary[];
-};
 type DeckDetailRow = Deck & {
   cards?: Card[];
   questions?: Pick<Question, "id">[];
@@ -244,6 +233,7 @@ export async function createDeck(deck: Inserts<"decks">) {
     source_file_path: payload.source_file_path ?? null,
     status: payload.status ?? "Ready",
     generation_error: payload.generation_error ?? null,
+    generation_question_types: payload.generation_question_types ?? ["mcq", "true_false"],
     is_archived: payload.is_archived ?? false,
     created_at: payload.created_at ?? now,
     updated_at: payload.updated_at ?? now,
@@ -287,19 +277,6 @@ export async function deleteDeckWithCoverImage(deck: Pick<Deck, "id" | "cover_im
   await deleteDeck(deck.id);
 
   return { coverDeleteWarning };
-}
-
-export async function listSavedDecks() {
-  const { data, error } = await supabase
-    .from("saved_decks")
-    .select("*, decks(*)")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-
-  return data ?? [];
 }
 
 export async function listCollaborativeDecks() {
@@ -361,70 +338,3 @@ export async function listCollaborativeDecks() {
     .filter((entry) => entry.decks !== null);
 }
 
-export async function listMyPublishedDecks({
-  limit,
-  offset = 0,
-}: {
-  limit: number;
-  offset?: number;
-}) {
-  const start = offset;
-  const end = offset + limit - 1;
-  const { data, error, count } = await supabase
-    .from("decks")
-    .select("*, topics(id, name), cards(id), questions(id), deck_collaborators(*)", { count: "exact" })
-    .eq("visibility", "PUBLIC")
-    .eq("status", "Ready")
-    .eq("is_archived", false)
-    .order("updated_at", { ascending: false })
-    .range(start, end);
-
-  if (error) throw error;
-
-  const rows = (data ?? []) as unknown as DeckListRow[];
-  const collaboratorsByDeck = await buildCollaboratorProfilesByDeck(rows);
-
-  const items = rows.map((row) => ({
-    ...row,
-    card_count: Array.isArray(row.cards) ? row.cards.length : 0,
-    question_count: Array.isArray(row.questions) ? row.questions.length : 0,
-    collaborator_count: Array.isArray(row.deck_collaborators)
-      ? row.deck_collaborators.filter((item) => item.status === "accepted").length
-      : 0,
-    collaborators: collaboratorsByDeck.get(row.id) ?? [],
-  })) as PublishedDeckSummary[];
-
-  return {
-    items,
-    hasMore: items.length === limit,
-    totalCount: count ?? 0,
-  };
-}
-
-export async function listPublishedDecksForOwners(ownerIds: string[]) {
-  if (!ownerIds.length) return [] as PublishedDeckSummary[];
-
-  const { data, error } = await supabase
-    .from("decks")
-    .select("*, topics(id, name), cards(id), questions(id), deck_collaborators(*)")
-    .in("owner_id", ownerIds)
-    .eq("visibility", "PUBLIC")
-    .eq("status", "Ready")
-    .eq("is_archived", false)
-    .order("updated_at", { ascending: false });
-
-  if (error) throw error;
-
-  const rows = (data ?? []) as unknown as DeckListRow[];
-  const collaboratorsByDeck = await buildCollaboratorProfilesByDeck(rows);
-
-  return rows.map((row) => ({
-    ...row,
-    card_count: Array.isArray(row.cards) ? row.cards.length : 0,
-    question_count: Array.isArray(row.questions) ? row.questions.length : 0,
-    collaborator_count: Array.isArray(row.deck_collaborators)
-      ? row.deck_collaborators.filter((item) => item.status === "accepted").length
-      : 0,
-    collaborators: collaboratorsByDeck.get(row.id) ?? [],
-  })) as PublishedDeckSummary[];
-}

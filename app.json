@@ -7,13 +7,11 @@
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#F7F1EC"
     },
-
     "ios": {
       "supportsTablet": true
     },
@@ -22,8 +20,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFDF9"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "package": "com.memora.memora",
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,7 +41,14 @@
       ],
       "expo-image-picker",
       "expo-sqlite",
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "expo-audio"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "13d95f28-baff-4eb7-af44-f39f21abc722"
+      }
+    }
   }
 }

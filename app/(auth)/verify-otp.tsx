@@ -2,7 +2,7 @@ import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Image } from "expo-image";
 import { View } from "react-native";
-
+import { Link } from "expo-router";
 import {
   AppButton,
   AppCard,
@@ -90,22 +90,23 @@ export default function VerifyOtpScreen() {
   }
 
   return (
-    <Screen scroll>
+    <Screen scroll contentClassName="flex-grow items-center justify-center">
       {/* Illustration */}
       <View className="items-center py-2">
-        <View className="h-44 w-44 items-center justify-center rounded-lg bg-peach-soft">
+        <View className="h-44 w-44 items-center justify-center">
           <Image
-            source={Images.floral01}
+            source={Images.floral05}
             style={{ width: 130, height: 130 }}
             contentFit="contain"
           />
         </View>
       </View>
 
-      {/* Heading */}
-      <View className="gap-2">
-        <AppText variant="title">Check your email</AppText>
-        <AppText variant="body" className="text-text-muted">
+      <View className="gap-2 justify-center w-full">
+        <AppText variant="title" className="w-full text-center">
+          Check your email
+        </AppText>
+        <AppText variant="body" className="text-text-muted w-full text-center">
           We sent a 6-digit code to{" "}
           <AppText variant="body" className="font-sans-semibold text-text">
             {email}
@@ -115,7 +116,7 @@ export default function VerifyOtpScreen() {
       </View>
 
       {/* Form */}
-      <AppCard className="gap-4">
+      <AppCard className="gap-4 w-full">
         <AppInput
           label="Verification code"
           placeholder="123456"
@@ -161,8 +162,12 @@ export default function VerifyOtpScreen() {
       </AppCard>
 
       {/* Footer */}
-      <NavLink href="/register" title="Use a different email" variant="ghost" />
+      <Link
+        href="/register"
+        className="font-sans text-base leading-6 text-text active:text-pink"
+      >
+        Use a different email
+      </Link>
     </Screen>
   );
 }
-

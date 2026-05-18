@@ -13,7 +13,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\\\\supabase\\\\migrations\" -File)",
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(npx tsc *)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Format-Table -AutoSize)",
+      "PowerShell(tree /path \"C:\\\\Users\\\\phamt\\\\Documents\\\\memora\" /L 3 /F 2>$null)"
     ]
   }
 }

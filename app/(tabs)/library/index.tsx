@@ -77,7 +77,7 @@ export default function LibraryScreen() {
       {!loading && decks.length === 0 ? (
         <EmptyState
           title="No decks yet"
-          description="Create your first deck or save a public deck to start building your library."
+          description="Create your first deck to start building your library."
           showIllustration
         />
       ) : null}

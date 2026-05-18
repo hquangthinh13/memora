@@ -54,7 +54,7 @@ export function Screen({
         <Animated.ScrollView
           className="flex-1"
           contentContainerClassName={cn(
-            "gap-screen-gap px-screen-x pb-screen-y",
+            "flex-grow gap-screen-gap px-screen-x pb-screen-y",
             contentClassName,
           )}
           onScroll={

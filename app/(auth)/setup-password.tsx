@@ -53,12 +53,12 @@ export default function SetupPasswordScreen() {
   }
 
   return (
-    <Screen scroll>
+    <Screen scroll contentClassName="flex-grow items-center justify-center">
       {/* Illustration */}
       <View className="items-center py-2">
-        <View className="h-44 w-44 items-center justify-center rounded-lg bg-yellow-soft">
+        <View className="h-44 w-44 items-center justify-center ">
           <Image
-            source={Images.floral01}
+            source={Images.floral06}
             style={{ width: 130, height: 130 }}
             contentFit="contain"
           />
@@ -66,15 +66,17 @@ export default function SetupPasswordScreen() {
       </View>
 
       {/* Heading */}
-      <View className="gap-2">
-        <AppText variant="title">One last step</AppText>
-        <AppText variant="body" className="text-text-muted">
+      <View className="gap-2 justify-center w-full">
+        <AppText variant="title" className="w-full text-center">
+          One last step
+        </AppText>
+        <AppText variant="body" className="text-text-muted w-full text-center">
           Set a password so you can log in with email anytime.
         </AppText>
       </View>
 
       {/* Form */}
-      <AppCard className="gap-4">
+      <AppCard className="gap-4 w-full">
         <AppInput
           label="Password"
           placeholder="At least 8 characters"
@@ -99,9 +101,9 @@ export default function SetupPasswordScreen() {
           variant="primary"
           disabled={submitting}
           onPress={handleSubmit}
+          className="mt-4"
         />
       </AppCard>
     </Screen>
   );
 }
-

@@ -2,7 +2,7 @@ import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import { Image } from "expo-image";
 import { View } from "react-native";
-
+import { Link } from "expo-router";
 import {
   AppButton,
   AppCard,
@@ -12,10 +12,7 @@ import {
   Screen,
 } from "@/components";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  getAuthErrorMessage,
-  sendEmailOtpSignUp,
-} from "@/services/auth";
+import { getAuthErrorMessage, sendEmailOtpSignUp } from "@/services/auth";
 import Images from "@/constants/images";
 
 export default function RegisterScreen() {
@@ -55,17 +52,12 @@ export default function RegisterScreen() {
   }
 
   return (
-    <Screen
-      scroll
-      header={
-        <NavLink href="/onboarding" title="Back" variant="ghost" />
-      }
-    >
+    <Screen scroll contentClassName="flex-grow items-center justify-center">
       {/* Illustration */}
       <View className="items-center py-2">
-        <View className="h-44 w-44 items-center justify-center rounded-lg bg-mint-soft">
+        <View className="h-44 w-44 items-center justify-center">
           <Image
-            source={Images.floral01}
+            source={Images.floral04}
             style={{ width: 130, height: 130 }}
             contentFit="contain"
           />
@@ -73,18 +65,20 @@ export default function RegisterScreen() {
       </View>
 
       {/* Heading */}
-      <View className="gap-2">
-        <AppText variant="title">Create an account</AppText>
-        <AppText variant="body" className="text-text-muted">
+      <View className="gap-2 justify-center w-full">
+        <AppText variant="title" className="w-full text-center">
+          Create an account
+        </AppText>
+        <AppText variant="body" className="text-text-muted w-full text-center">
           Enter your email and we'll send a 6-digit code to get started.
         </AppText>
       </View>
 
       {/* Form */}
-      <AppCard className="gap-4">
+      <AppCard className="gap-4 w-full">
         <AppInput
           label="Name"
-          placeholder="Alex"
+          placeholder="Enter your name"
           value={name}
           onChangeText={setName}
         />
@@ -106,12 +100,22 @@ export default function RegisterScreen() {
           variant="primary"
           disabled={submitting}
           onPress={handleEmailSignUp}
+          className="mt-4"
         />
       </AppCard>
 
       {/* Footer */}
-      <NavLink href="/login" title="Already have an account? Log in" variant="ghost" />
+      <View className="flex-row items-center w-full justify-center">
+        <AppText variant="body" className="text-text-muted">
+          Already have an account?{" "}
+        </AppText>
+        <Link
+          href="/login"
+          className="font-sans text-base leading-6 text-text active:text-pink"
+        >
+          Log in
+        </Link>
+      </View>
     </Screen>
   );
 }
-

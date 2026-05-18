@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { Modal, ScrollView, TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 
-import { CreateTopicSheet } from "@/components/topics";
-import { AppButton, AppText, EmptyState, LoadingState } from "@/components/shared";
+import { CreateTopicSheet, TopicPickerSheet } from "@/components/topics";
+import { AppText } from "@/components/shared";
 import { useTopics } from "@/hooks/useTopics";
 import { cn } from "@/lib/cn";
 
@@ -23,7 +23,7 @@ export function TopicSelect({
 }: TopicSelectProps) {
   const { topics, loading, error: loadError, refresh, addTopic } = useTopics();
 
-  const [open, setOpen] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [createSheetVisible, setCreateSheetVisible] = useState(false);
 
   const selectedTopic = useMemo(
@@ -31,17 +31,17 @@ export function TopicSelect({
     [topics, value],
   );
 
-  function openDropdown() {
-    setOpen(true);
+  function openPicker() {
+    setPickerVisible(true);
     void refresh();
   }
 
-  function closeDropdown() {
-    setOpen(false);
+  function closePicker() {
+    setPickerVisible(false);
   }
 
   function openCreateTopicSheet() {
-    setOpen(false);
+    setPickerVisible(false);
     setCreateSheetVisible(true);
   }
 
@@ -69,7 +69,7 @@ export function TopicSelect({
           error ? "border-danger" : "border-border",
           disabled && "opacity-50",
         )}
-        onPress={openDropdown}
+        onPress={openPicker}
       >
         <AppText
           variant="body"
@@ -98,84 +98,15 @@ export function TopicSelect({
         </AppText>
       ) : null}
 
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={closeDropdown}
-      >
-        <View className="flex-1 justify-end bg-black/30">
-          <TouchableOpacity className="flex-1" onPress={closeDropdown} />
-
-          <View className="max-h-[82%] rounded-t-3xl border border-border bg-background p-5">
-            <View className="mb-4 flex-row items-center justify-between gap-3">
-              <View className="flex-1">
-                <AppText variant="subtitle">Choose topic</AppText>
-                <AppText variant="caption">
-                  Pick an existing topic or create a new one.
-                </AppText>
-              </View>
-
-              <AppButton
-                title="Close"
-                variant="ghost"
-                className="min-h-10 px-4"
-                onPress={closeDropdown}
-              />
-            </View>
-
-            <AppButton
-              title="Add new topic"
-              variant="secondary"
-              className="mb-4"
-              onPress={openCreateTopicSheet}
-            />
-
-            {loading ? (
-              <LoadingState label="Loading topics..." center={false} size="sm" />
-            ) : null}
-
-            <ScrollView
-              className="max-h-96"
-              contentContainerClassName="gap-3 pb-4"
-            >
-              {topics.map((topic) => (
-                <TouchableOpacity
-                  key={topic.id}
-                  accessibilityRole="button"
-                  className={cn(
-                    "rounded-lg border p-card active:opacity-80",
-                    topic.id === value
-                      ? "border-primary bg-mint-soft"
-                      : "border-border bg-surface",
-                  )}
-                  onPress={() => {
-                    onChange(topic.id);
-                    closeDropdown();
-                  }}
-                >
-                  <AppText variant="body" className="font-sans-semibold">
-                    {topic.name}
-                  </AppText>
-
-                  {topic.description ? (
-                    <AppText variant="caption" className="mt-1">
-                      {topic.description}
-                    </AppText>
-                  ) : null}
-                </TouchableOpacity>
-              ))}
-
-              {!loading && topics.length === 0 ? (
-                <EmptyState
-                  title="No topics yet"
-                  description="Create a topic to use it for this deck."
-                />
-              ) : null}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      <TopicPickerSheet
+        visible={pickerVisible}
+        topics={topics}
+        value={value}
+        loading={loading}
+        onClose={closePicker}
+        onSelect={onChange}
+        onCreatePress={openCreateTopicSheet}
+      />
 
       <CreateTopicSheet
         visible={createSheetVisible}
@@ -185,4 +116,3 @@ export function TopicSelect({
     </View>
   );
 }
-

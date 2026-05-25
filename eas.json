@@ -12,7 +12,6 @@
       "distribution": "internal"
     },
     "preview": {
-      "node": "22.22.2",
       "distribution": "internal",
       "android": {
         "buildType": "apk"

@@ -2,8 +2,6 @@ name: Expo Android Build
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
 
@@ -18,7 +16,10 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22.22.2
+          node-version: 22
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -32,8 +33,14 @@ jobs:
       - name: Build Android APK
         run: eas build -p android --profile preview --non-interactive
 
+      - name: Download APK from Expo
+        run: |
+          APK_URL=$(eas build:list --platform android --status finished --limit 1 --json --non-interactive | jq -r '.[0].artifacts.buildUrl')
+          curl -L -o memora.apk "$APK_URL"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
+          files: memora.apk
